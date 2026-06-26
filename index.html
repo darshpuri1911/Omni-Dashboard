@@ -1,0 +1,3389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OMNI Sales Dashboard — YTD 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #f0f2f7;
+  --card: #ffffff;
+  --border: #e4e9f2;
+  --text: #1a1f36;
+  --muted: #6b7280;
+  --accent: #4f46e5;
+  --accent2: #06b6d4;
+  --green: #10b981;
+  --red: #ef4444;
+  --orange: #f59e0b;
+  --purple: #8b5cf6;
+  --pink: #ec4899;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 13px; }
+
+/* ── TOPBAR ── */
+.topbar { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 200; gap: 12px; flex-wrap: wrap; }
+.topbar-left { display: flex; align-items: center; gap: 10px; }
+.topbar-left h1 { font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -0.4px; }
+.topbar-left .badge { font-size: 10px; font-weight: 700; background: #eef2ff; color: var(--accent); padding: 3px 8px; border-radius: 20px; }
+.status-pill { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); background: var(--bg); padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+.dot.loading { background: var(--orange); animation: blink .7s infinite; }
+.dot.error { background: var(--red); }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── FILTER BAR ── */
+.filterbar { background: var(--card); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.filterbar label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+.filterbar select, .filterbar button { border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-size: 12px; color: var(--text); background: var(--bg); cursor: pointer; outline: none; transition: border-color .15s; }
+.filterbar select:focus, .filterbar select:hover { border-color: var(--accent); }
+.filterbar .metric-toggle { display: flex; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.filterbar .metric-toggle button { border: none; border-radius: 0; background: transparent; padding: 6px 14px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; transition: all .15s; }
+.filterbar .metric-toggle button.active { background: var(--accent); color: #fff; }
+.sep { width: 1px; height: 24px; background: var(--border); }
+.btn-reset { background: var(--card) !important; color: var(--accent) !important; border-color: var(--accent) !important; font-weight: 600; }
+.btn-reset:hover { background: #eef2ff !important; }
+
+/* ── LAYOUT ── */
+.page { padding: 20px 24px; max-width: 1500px; margin: 0 auto; }
+
+/* ── KPI GRID ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-bottom: 20px; }
+.kpi { background: var(--card); border-radius: 12px; padding: 14px 16px; border: 1px solid var(--border); position: relative; overflow: hidden; transition: box-shadow .2s; }
+.kpi:hover { box-shadow: 0 4px 20px rgba(0,0,0,.08); }
+.kpi::before { content:''; position:absolute; top:0; left:0; width:3px; height:100%; border-radius:3px 0 0 3px; }
+.kpi.c1::before{background:var(--accent)} .kpi.c2::before{background:var(--purple)} .kpi.c3::before{background:var(--green)} .kpi.c4::before{background:var(--orange)} .kpi.c5::before{background:var(--accent2)} .kpi.c6::before{background:var(--pink)} .kpi.c7::before{background:#f97316}
+.kpi .k-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 5px; }
+.kpi .k-value { font-size: 21px; font-weight: 800; color: var(--text); line-height: 1; }
+.kpi.c1 .k-value{color:var(--accent)} .kpi.c2 .k-value{color:var(--purple)} .kpi.c3 .k-value{color:var(--green)} .kpi.c4 .k-value{color:var(--orange)} .kpi.c5 .k-value{color:var(--accent2)} .kpi.c6 .k-value{color:var(--pink)} .kpi.c7 .k-value{color:#f97316}
+.kpi .k-sub { font-size: 10px; color: var(--muted); margin-top: 3px; }
+.kpi .k-change { font-size: 10px; font-weight: 700; margin-top: 4px; }
+.kpi .k-change.up { color: var(--green); } .kpi .k-change.down { color: var(--red); }
+
+/* ── CARD ── */
+.card { background: var(--card); border-radius: 14px; padding: 18px 20px; border: 1px solid var(--border); }
+.card-title { font-size: 12px; font-weight: 800; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; gap: 7px; text-transform: uppercase; letter-spacing: .4px; }
+.card-title .icon { font-size: 14px; }
+
+/* ── GRID LAYOUTS ── */
+.g2 { display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 16px; margin-bottom: 16px; }
+.g3 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin-bottom: 16px; }
+.g4 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.g1 { margin-bottom: 16px; }
+.g6 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.chart-wrap { position: relative; }
+
+/* ── TABLE ── */
+.tbl { width: 100%; border-collapse: collapse; font-size: 11px; }
+.tbl th { text-align: left; padding: 6px 10px; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); background: #fafbfc; position: sticky; top: 0; }
+.tbl td { padding: 7px 10px; border-bottom: 1px solid #f4f6fb; color: var(--text); vertical-align: middle; }
+.tbl tr:last-child td { border-bottom: none; }
+.tbl tr:hover td { background: #f9fafc; }
+.tbl-wrap { max-height: 320px; overflow-y: auto; }
+
+/* ── BADGES ── */
+.badge { display: inline-block; padding: 2px 7px; border-radius: 20px; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .3px; }
+.badge.g { background: #d1fae5; color: #065f46; }
+.badge.y { background: #fef9c3; color: #854d0e; }
+.badge.r { background: #fee2e2; color: #991b1b; }
+.badge.b { background: #dbeafe; color: #1e40af; }
+.badge.p { background: #ede9fe; color: #5b21b6; }
+
+/* ── MINI BARS ── */
+.minibar { display: flex; align-items: center; gap: 8px; }
+.minibar .track { flex: 1; height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.minibar .fill { height: 100%; border-radius: 3px; }
+
+/* ── DOW BARS ── */
+.dow-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+.dow-row .dl { width: 32px; font-size: 11px; font-weight: 700; color: var(--muted); }
+.dow-row .dtrack { flex: 1; height: 20px; background: var(--bg); border-radius: 5px; overflow: hidden; }
+.dow-row .dfill { height: 100%; border-radius: 5px; display: flex; align-items: center; padding-left: 8px; }
+.dow-row .dfill span { font-size: 9px; font-weight: 800; color: rgba(255,255,255,.9); }
+.dow-row .dval { width: 64px; font-size: 11px; font-weight: 700; color: var(--text); text-align: right; }
+
+/* ── LEGEND ── */
+.legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.leg { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--muted); }
+.leg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── HEATMAP ── */
+.heatmap { width: 100%; border-collapse: collapse; font-size: 10px; }
+.heatmap th { padding: 5px 8px; text-align: center; font-weight: 700; color: var(--muted); background: #fafbfc; border: 1px solid var(--border); }
+.heatmap td { padding: 5px 8px; text-align: center; border: 1px solid rgba(255,255,255,.6); font-weight: 700; border-radius: 3px; }
+
+/* ── LOADING ── */
+.loading-screen { position: fixed; inset: 0; background: rgba(240,242,247,.92); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; gap: 12px; }
+.spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-screen .lt { font-size: 15px; font-weight: 700; color: var(--text); }
+.loading-screen .ls { font-size: 12px; color: var(--muted); }
+
+/* ── SPARKLINES ── */
+.spark { display: inline-block; }
+
+/* ── RISK BARS ── */
+.risk-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.risk-row .rl { flex: 1; font-size: 11px; color: var(--muted); }
+.risk-row .rtrack { width: 100px; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.risk-row .rfill { height: 100%; border-radius: 3px; }
+.risk-row .rpct { width: 36px; font-size: 11px; font-weight: 800; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; height: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+@media(max-width:1000px) {
+  .kpi-grid { grid-template-columns: repeat(4,1fr); }
+  .g2,.g3,.g4,.g6 { grid-template-columns: 1fr; }
+}
+
+/* ── MULTI-SELECT DROPDOWN ── */
+.ms-wrap { position:relative; display:inline-block; }
+.ms-btn { border:1px solid var(--border); border-radius:8px; padding:6px 12px; font-size:12px; color:var(--text); background:var(--bg); cursor:pointer; outline:none; min-width:130px; text-align:left; display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.ms-btn:hover { border-color:var(--accent); }
+.ms-dropdown { position:absolute; top:calc(100% + 4px); left:0; background:#fff; border:1px solid var(--border); border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,.1); z-index:500; min-width:180px; max-height:260px; overflow-y:auto; padding:6px 0; }
+.ms-dropdown label { display:flex; align-items:center; gap:8px; padding:6px 14px; font-size:12px; color:var(--text); cursor:pointer; transition:background .1s; }
+.ms-dropdown label:hover { background:#f5f7ff; }
+.ms-dropdown input[type=checkbox] { accent-color:var(--accent); width:13px; height:13px; }
+.ms-sep { height:1px; background:var(--border); margin:4px 0; }
+.ms-actions { display:flex; gap:8px; padding:6px 14px; }
+.ms-actions span { font-size:11px; color:var(--accent); cursor:pointer; font-weight:600; }
+.ms-actions span:hover { text-decoration:underline; }
+
+/* ── TABS ── */
+.dash-tabs { display:flex; gap:0; border-bottom:2px solid var(--border); margin-bottom:0; background:#fff; padding:0 24px; }
+.dash-tab { padding:12px 20px; font-size:13px; font-weight:700; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .15s; letter-spacing:.2px; }
+.dash-tab:hover { color:var(--text); }
+.dash-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+</style>
+</head>
+<body>
+
+<div class="loading-screen" id="ls">
+  <div class="spinner"></div>
+  <div class="lt">Loading your live data…</div>
+  <div class="ls" id="ls-sub">Connecting to Google Sheets</div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <h1>📊 OMNI Sales Dashboard</h1>
+    <span class="badge" id="tb-badge">YTD 2026</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <div class="status-pill">
+      <span class="dot loading" id="status-dot"></span>
+      <span id="status-txt">Loading…</span>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="dash-tabs">
+  <div class="dash-tab active" id="tab-sales" onclick="switchTab('sales')">📊 Sales Dashboard</div>
+  <div class="dash-tab" id="tab-kpis" onclick="switchTab('kpis')">📋 Other KPIs</div>
+</div>
+
+<!-- SALES FILTER BAR -->
+<div class="filterbar" id="filterbar-sales">
+  <label>Filter:</label>
+  <div class="ms-wrap" id="ms-month-wrap">
+    <button class="ms-btn" onclick="toggleMS('ms-month')">All Months <span>▾</span></button>
+    <div class="ms-dropdown" id="ms-month" style="display:none">
+      <div class="ms-actions"><span onclick="selectAllMS('ms-month')">All</span><span onclick="clearAllMS('ms-month')">None</span></div>
+      <div class="ms-sep"></div>
+      <div id="ms-month-opts"></div>
+    </div>
+  </div>
+  <div class="ms-wrap" id="ms-mkt-wrap">
+    <button class="ms-btn" onclick="toggleMS('ms-mkt')">All Marketplaces <span>▾</span></button>
+    <div class="ms-dropdown" id="ms-mkt" style="display:none">
+      <div class="ms-actions"><span onclick="selectAllMS('ms-mkt')">All</span><span onclick="clearAllMS('ms-mkt')">None</span></div>
+      <div class="ms-sep"></div>
+      <div id="ms-mkt-opts"></div>
+    </div>
+  </div>
+  <div class="ms-wrap" id="ms-cat-wrap">
+    <button class="ms-btn" onclick="toggleMS('ms-cat')">All Categories <span>▾</span></button>
+    <div class="ms-dropdown" id="ms-cat" style="display:none">
+      <div class="ms-actions"><span onclick="selectAllMS('ms-cat')">All</span><span onclick="clearAllMS('ms-cat')">None</span></div>
+      <div class="ms-sep"></div>
+      <div id="ms-cat-opts"></div>
+    </div>
+  </div>
+  <div class="ms-wrap" id="ms-asin-wrap">
+    <button class="ms-btn" onclick="toggleMS('ms-asin')">All ASINs <span>▾</span></button>
+    <div class="ms-dropdown" id="ms-asin" style="display:none;min-width:260px">
+      <div style="padding:6px 10px"><input type="text" id="ms-asin-search" placeholder="Search ASIN or title..." oninput="filterAsinSearch()" style="width:100%;border:1px solid #e4e9f2;border-radius:6px;padding:5px 8px;font-size:11px;outline:none"></div>
+      <div class="ms-actions"><span onclick="selectAllMS('ms-asin')">All</span><span onclick="clearAllMS('ms-asin')">None</span></div>
+      <div class="ms-sep"></div>
+      <div id="ms-asin-opts" style="max-height:200px;overflow-y:auto"></div>
+    </div>
+  </div>
+  <div class="sep"></div>
+  <label>Primary Metric:</label>
+  <div class="metric-toggle">
+    <button id="m-gmv" class="active" onclick="setMetric('gmv')">$ GMV</button>
+    <button id="m-units" onclick="setMetric('units')"># Units</button>
+  </div>
+  <div class="sep"></div>
+  <button class="btn-reset" onclick="resetFilters()">↺ Reset All</button>
+</div>
+
+<!-- ROI FILTER BAR -->
+<div class="filterbar" id="filterbar-age" style="display:none">
+  <label>Filter:</label>
+  <div class="ms-wrap">
+    <button class="ms-btn" onclick="toggleMS('ms-age-month')">Latest Snapshot <span>▾</span></button>
+    <div class="ms-dropdown" id="ms-age-month" style="display:none">
+      <div id="ms-age-month-opts"></div>
+    </div>
+  </div>
+  <div class="ms-wrap">
+    <button class="ms-btn" onclick="toggleMS('ms-age-bucket')">All Age Buckets <span>▾</span></button>
+    <div class="ms-dropdown" id="ms-age-bucket" style="display:none">
+      <div class="ms-actions"><span onclick="selectAllMS('ms-age-bucket')">All</span><span onclick="clearAllMS('ms-age-bucket')">None</span></div>
+      <div class="ms-sep"></div>
+      <div id="ms-age-bucket-opts"></div>
+    </div>
+  </div>
+  <button class="btn-reset" onclick="resetAgeFilters()">↺ Reset All</button>
+</div>
+
+<div class="filterbar" id="filterbar-excess" style="display:none">
+  <label>Filter:</label>
+  <div class="ms-wrap">
+    <button class="ms-btn" onclick="toggleMS('ms-ex-brand')">All Brands <span>▾</span></button>
+    <div class="ms-dropdown" id="ms-ex-brand" style="display:none">
+      <div class="ms-actions"><span onclick="selectAllMS('ms-ex-brand')">All</span><span onclick="clearAllMS('ms-ex-brand')">None</span></div>
+      <div class="ms-sep"></div>
+      <div id="ms-ex-brand-opts"></div>
+    </div>
+  </div>
+  <div class="ms-wrap">
+    <button class="ms-btn" onclick="toggleMS('ms-ex-class')">All Classifications <span>▾</span></button>
+    <div class="ms-dropdown" id="ms-ex-class" style="display:none">
+      <div class="ms-actions"><span onclick="selectAllMS('ms-ex-class')">All</span><span onclick="clearAllMS('ms-ex-class')">None</span></div>
+      <div class="ms-sep"></div>
+      <div id="ms-ex-class-opts"></div>
+    </div>
+  </div>
+  <div class="ms-wrap">
+    <button class="ms-btn" onclick="toggleMS('ms-ex-ch')">All Channel Counts <span>▾</span></button>
+    <div class="ms-dropdown" id="ms-ex-ch" style="display:none">
+      <div class="ms-actions"><span onclick="selectAllMS('ms-ex-ch')">All</span><span onclick="clearAllMS('ms-ex-ch')">None</span></div>
+      <div class="ms-sep"></div>
+      <div id="ms-ex-ch-opts"></div>
+    </div>
+  </div>
+  <button class="btn-reset" onclick="resetExcessFilters()">↺ Reset All</button>
+</div>
+
+<div class="filterbar" id="filterbar-roi" style="display:none">
+  <label>Filter:</label>
+  <div class="ms-wrap">
+    <button class="ms-btn" onclick="toggleMS('ms-roi-month')">All Months <span>▾</span></button>
+    <div class="ms-dropdown" id="ms-roi-month" style="display:none">
+      <div class="ms-actions"><span onclick="selectAllMS('ms-roi-month')">All</span><span onclick="clearAllMS('ms-roi-month')">None</span></div>
+      <div class="ms-sep"></div>
+      <div id="ms-roi-month-opts">
+        <label><input type="checkbox" value="0" checked onchange="updateMSBtn('ms-roi-month');renderROIFiltered()"> Jan 2026</label>
+        <label><input type="checkbox" value="1" checked onchange="updateMSBtn('ms-roi-month');renderROIFiltered()"> Feb 2026</label>
+        <label><input type="checkbox" value="2" checked onchange="updateMSBtn('ms-roi-month');renderROIFiltered()"> Mar 2026</label>
+        <label><input type="checkbox" value="3" checked onchange="updateMSBtn('ms-roi-month');renderROIFiltered()"> Apr 2026</label>
+      </div>
+    </div>
+  </div>
+  <div class="ms-wrap">
+    <button class="ms-btn" onclick="toggleMS('ms-roi-ch')">All Channels <span>▾</span></button>
+    <div class="ms-dropdown" id="ms-roi-ch" style="display:none">
+      <div class="ms-actions"><span onclick="selectAllMS('ms-roi-ch')">All</span><span onclick="clearAllMS('ms-roi-ch')">None</span></div>
+      <div class="ms-sep"></div>
+      <div id="ms-roi-ch-opts">
+        <label><input type="checkbox" value="Walmart Omni Online" checked onchange="updateMSBtn('ms-roi-ch');renderROIFiltered()"> Walmart Omni Online</label>
+        <label><input type="checkbox" value="TKM" checked onchange="updateMSBtn('ms-roi-ch');renderROIFiltered()"> TKM</label>
+        <label><input type="checkbox" value="TikTok & Flip" checked onchange="updateMSBtn('ms-roi-ch');renderROIFiltered()"> TikTok & Flip</label>
+        <label><input type="checkbox" value="Other Omni Online" checked onchange="updateMSBtn('ms-roi-ch');renderROIFiltered()"> Other Omni Online</label>
+      </div>
+    </div>
+  </div>
+  <button class="btn-reset" onclick="resetROIFilters()">↺ Reset All</button>
+</div>
+
+<!-- FCST FILTER BAR -->
+<div class="filterbar" id="filterbar-kpis" style="display:none">
+  <label>Filter:</label>
+  <div class="ms-wrap" id="ms-fmonth-wrap">
+    <button class="ms-btn" onclick="toggleMS('ms-fmonth')">All Months <span>▾</span></button>
+    <div class="ms-dropdown" id="ms-fmonth" style="display:none">
+      <div class="ms-actions"><span onclick="selectAllMS('ms-fmonth')">All</span><span onclick="clearAllMS('ms-fmonth')">None</span></div>
+      <div class="ms-sep"></div>
+      <div id="ms-fmonth-opts"></div>
+    </div>
+  </div>
+  <div class="ms-wrap" id="ms-fmkt-wrap">
+    <button class="ms-btn" onclick="toggleMS('ms-fmkt')">All Marketplaces <span>▾</span></button>
+    <div class="ms-dropdown" id="ms-fmkt" style="display:none">
+      <div class="ms-actions"><span onclick="selectAllMS('ms-fmkt')">All</span><span onclick="clearAllMS('ms-fmkt')">None</span></div>
+      <div class="ms-sep"></div>
+      <div id="ms-fmkt-opts"></div>
+    </div>
+  </div>
+  <button class="btn-reset" onclick="resetFcstFilters()">↺ Reset All</button>
+</div>
+
+<!-- PAGE -->
+<div class="tab-content active" id="content-sales">
+<div class="page">
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi c1"><div class="k-label">Total GMV</div><div class="k-value" id="k-gmv">—</div><div class="k-sub">YTD 2026</div></div>
+    <div class="kpi c2"><div class="k-label">Total Orders</div><div class="k-value" id="k-orders">—</div><div class="k-sub">Transactions</div></div>
+    <div class="kpi c3"><div class="k-label">Total Units</div><div class="k-value" id="k-units">—</div><div class="k-sub">Sold</div></div>
+    <div class="kpi c4"><div class="k-label">Avg Order Value</div><div class="k-value" id="k-aov">—</div><div class="k-sub">Per order</div></div>
+    <div class="kpi c5"><div class="k-label">Marketplaces</div><div class="k-value" id="k-mkts">—</div><div class="k-sub">Active channels</div></div>
+    <div class="kpi c6"><div class="k-label">Unique ASINs</div><div class="k-value" id="k-asins">—</div><div class="k-sub">Products</div></div>
+    <div class="kpi c7"><div class="k-label">Categories</div><div class="k-value" id="k-cats">—</div><div class="k-sub">Active</div></div>
+  </div>
+
+  <!-- Row 1: Monthly trend + Marketplace share -->
+  <div class="g2">
+    <div class="card">
+      <div class="card-title"><span class="icon">📅</span><span id="monthly-title">Monthly GMV + Units Trend</span></div>
+      <div class="chart-wrap" style="height:230px"><canvas id="ch-monthly"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">🏪</span>Marketplace Share</div>
+      <div class="legend" id="mkt-legend"></div>
+      <div class="chart-wrap" style="height:175px"><canvas id="ch-donut"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Row 2: Mkt line + Category bar -->
+  <div class="g3">
+    <div class="card">
+      <div class="card-title"><span class="icon">📈</span><span id="mktline-title">Marketplace GMV by Month</span></div>
+      <div class="legend" id="mkt-line-legend"></div>
+      <div class="chart-wrap" style="height:210px"><canvas id="ch-mktline"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">🏆</span><span id="catbar-title">Top Categories — GMV</span></div>
+      <div class="chart-wrap" style="height:210px"><canvas id="ch-catbar"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Row 3: Cumulative + DOW -->
+  <div class="g4">
+    <div class="card">
+      <div class="card-title"><span class="icon">📉</span>Cumulative YTD vs Monthly</div>
+      <div class="chart-wrap" style="height:190px"><canvas id="ch-cumul"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">📆</span><span id="dow-title">Sales by Day of Week</span></div>
+      <div id="dow-bars" style="padding-top:2px"></div>
+    </div>
+  </div>
+
+  <!-- Row 4: MoM Growth heatmap -->
+  <div class="g1">
+    <div class="card">
+      <div class="card-title"><span class="icon">🌡️</span><span id="heat-title">Category GMV Heatmap — Monthly ($K)</span></div>
+      <div style="overflow-x:auto"><table class="heatmap" id="heatmap"></table></div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:10px;font-size:10px;color:var(--muted)">
+        <span>Low</span>
+        <div style="display:flex;gap:2px">
+          <div style="width:16px;height:10px;border-radius:2px;background:#fff5f5"></div>
+          <div style="width:16px;height:10px;border-radius:2px;background:#fed7d7"></div>
+          <div style="width:16px;height:10px;border-radius:2px;background:#fbb6ce"></div>
+          <div style="width:16px;height:10px;border-radius:2px;background:#bbf7d0"></div>
+          <div style="width:16px;height:10px;border-radius:2px;background:#4ade80"></div>
+          <div style="width:16px;height:10px;border-radius:2px;background:#15803d"></div>
+        </div>
+        <span>High</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 5: Top ASINs -->
+  <div class="g1">
+    <div class="card">
+      <div class="card-title"><span class="icon">🔥</span><span id="asin-title">Top 20 ASINs by GMV</span></div>
+      <div class="tbl-wrap">
+        <table class="tbl" id="asin-tbl">
+          <thead><tr><th>#</th><th>ASIN</th><th>Category</th><th id="asin-th-primary">GMV</th><th id="asin-th-secondary">Units</th><th>Orders</th><th>Avg Price</th><th style="min-width:200px">Product Title</th></tr></thead>
+          <tbody id="asin-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 6: Mkt table + Risk + MoM Growth -->
+  <div class="g6">
+    <div class="card">
+      <div class="card-title"><span class="icon">🏪</span>Marketplace Performance</div>
+      <table class="tbl" id="mkt-tbl">
+        <thead><tr><th>Marketplace</th><th id="mkt-th-metric">GMV</th><th>Units</th><th>Orders</th><th>AOV</th><th>Share</th></tr></thead>
+        <tbody id="mkt-tbody"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">⚠️</span>Concentration Risk</div>
+      <div id="risk-section"></div>
+      <div style="margin-top:16px">
+        <div class="card-title" style="font-size:11px;margin-bottom:8px">🚨 Low Inventory Alerts</div>
+        <table class="tbl" id="inv-tbl">
+          <thead><tr><th>ASIN</th><th>Title (short)</th><th>Inventory</th><th>Status</th></tr></thead>
+          <tbody id="inv-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">📊</span>MoM Growth by Category</div>
+      <div class="tbl-wrap">
+        <table class="tbl" id="mom-tbl">
+          <thead><tr><th>Category</th><th>Jan→Feb</th><th>Feb→Mar</th><th>Mar→Apr</th><th>Apr→May</th><th>Trend</th></tr></thead>
+          <tbody id="mom-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 7: AOV by marketplace + Seasonal spikes -->
+  <div class="g4">
+    <div class="card">
+      <div class="card-title"><span class="icon">💰</span>AOV by Marketplace &amp; Month</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="ch-aov"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">🌊</span>Seasonal Spike Detection — Peak ASINs</div>
+      <div class="tbl-wrap">
+        <table class="tbl" id="spike-tbl">
+          <thead><tr><th>ASIN</th><th>Peak Month</th><th>Peak Units</th><th>Category</th><th>Title</th></tr></thead>
+          <tbody id="spike-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- YoY Historical Comparison -->
+  <div class="g1" id="yoy-section">
+    <div class="card">
+      <div class="card-title"><span class="icon">📆</span>Year-over-Year GMV Comparison — 2024 vs 2025 vs 2026</div>
+      <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap" id="yoy-kpis"></div>
+      <div class="chart-wrap" style="height:260px"><canvas id="ch-yoy"></canvas></div>
+      <div style="font-size:11px;color:#64748b;margin-top:10px;font-style:italic">Note: Wayfair, Home Depot, and TikTok sales started in 2026 — they have no 2024/2025 historical comparison.</div>
+    </div>
+  </div>
+
+  <div class="g4">
+    <div class="card">
+      <div class="card-title"><span class="icon">📈</span>YoY Growth % by Month</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="ch-yoy-growth"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">🏪</span>Marketplace YoY — 2025 vs 2024</div>
+      <table class="tbl">
+        <thead><tr><th>Marketplace</th><th>2024</th><th>2025</th><th>Growth</th></tr></thead>
+        <tbody id="yoy-mkt-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /page -->
+</div><!-- /content-sales -->
+
+<!-- OTHER KPIs TAB -->
+<div class="tab-content" id="content-kpis">
+<div class="page">
+
+  <!-- ROI / FCST TOGGLE -->
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+    <div class="metric-toggle" id="kpi-view-toggle">
+      <button id="kv-fcst" class="active" onclick="switchKPIView('fcst')">📈 FCST Accuracy</button>
+      <button id="kv-roi"  onclick="switchKPIView('roi')">💰 ROI</button>
+      <button id="kv-excess" onclick="switchKPIView('excess')">📦 Excess Inventory</button>
+      <button id="kv-age" onclick="switchKPIView('age')">⏳ Inventory Age</button>
+    </div>
+  </div>
+
+  <!-- ══ FCST VIEW ══ -->
+  <div id="view-fcst">
+  <!-- FCST KPI CARDS -->
+  <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr)" id="fcst-kpi-grid">
+    <div class="kpi c1"><div class="k-label">Total FCST Qty</div><div class="k-value" id="fk-fcst">—</div><div class="k-sub">Jan 2025 – Apr 2026</div></div>
+    <div class="kpi c3"><div class="k-label">Units Sold</div><div class="k-value" id="fk-units">—</div><div class="k-sub">Jan 2025 – Apr 2026</div></div>
+    <div class="kpi c2"><div class="k-label">Actual Qty</div><div class="k-value" id="fk-actual">—</div><div class="k-sub">Jan 2025 – Apr 2026</div></div>
+    <div class="kpi c4"><div class="k-label">Achievement</div><div class="k-value" id="fk-ach">—</div><div class="k-sub">Actual / FCST Org</div></div>
+    <div class="kpi c5"><div class="k-label">Accuracy</div><div class="k-value" id="fk-acc">—</div><div class="k-sub">Sum Abs Err / Actual</div></div>
+    <div class="kpi c6"><div class="k-label">Abs Error</div><div class="k-value" id="fk-abserr">—</div><div class="k-sub">Sum of ASIN-level errors</div></div>
+  </div>
+
+  <!-- ACCURACY / ACHIEVEMENT TRACKER -->
+  <div class="card" id="fcst-tracker" style="margin-bottom:16px"></div>
+
+  <!-- Row 1: Omni Trend + Marketplace Achievement -->
+  <div class="g4">
+    <div class="card">
+      <div class="card-title"><span class="icon">📈</span>Omni Achievement &amp; Accuracy — Monthly Trend</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="ch-fcst-trend"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">🏪</span>Achievement by Marketplace</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="ch-fcst-mkt"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Row 2: Accuracy by Marketplace + Achievement vs Accuracy scatter -->
+  <div class="g4">
+    <div class="card">
+      <div class="card-title"><span class="icon">🎯</span>Accuracy by Marketplace</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="ch-fcst-acc-mkt"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">📊</span>Achievement &amp; Accuracy by Marketplace — Summary</div>
+      <table class="tbl" id="fcst-mkt-tbl">
+        <thead><tr><th>Marketplace</th><th>FCST</th><th>Actual</th><th>Units Sold</th><th>Achievement</th><th>Accuracy</th><th>Abs Error</th></tr></thead>
+        <tbody id="fcst-mkt-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Row 3: Top 20 ASINs -->
+  <div class="g1">
+    <div class="card">
+      <div class="card-title"><span class="icon">🔥</span>Top 20 ASINs — Achievement &amp; Accuracy (FCST ≥ 20 units)</div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>#</th><th>ASIN</th><th>Product Name</th><th>FCST</th><th>Actual Qty</th><th>Units Sold</th><th>Achievement</th><th>Accuracy</th><th>Abs Error</th></tr></thead>
+          <tbody id="fcst-asin-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 4: Monthly FCST vs Actual -->
+  <div class="g1">
+    <div class="card">
+      <div class="card-title"><span class="icon">📅</span>Monthly FCST vs Actual Qty vs Units Sold</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="ch-fcst-monthly"></canvas></div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+  </div><!-- /view-fcst -->
+
+  <!-- ══ ROI VIEW ══ -->
+  <div id="view-roi" style="display:none">
+
+    <!-- ROI KPI CARDS -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+      <div class="kpi c1"><div class="k-label">YTD Contribution Profit</div><div class="k-value" id="rk-profit">—</div><div class="k-sub">Omni Total</div></div>
+      <div class="kpi c3"><div class="k-label">YTD ROI</div><div class="k-value" id="rk-roi">—</div><div class="k-sub">Omni Total</div></div>
+      <div class="kpi c2"><div class="k-label">Avg Inv Cost (YTD)</div><div class="k-value" id="rk-omni-inv">—</div><div class="k-sub">Omni Total</div></div>
+      <div class="kpi c1"><div class="k-label">YTD Contribution Profit</div><div class="k-value" id="rk-wmt-profit">—</div><div class="k-sub">Walmart</div></div>
+      <div class="kpi c4"><div class="k-label">YTD ROI</div><div class="k-value" id="rk-wmt-roi">—</div><div class="k-sub">Walmart</div></div>
+      <div class="kpi c2"><div class="k-label">Avg Inv Cost (YTD)</div><div class="k-value" id="rk-wmt-inv">—</div><div class="k-sub">Walmart</div></div>
+    </div>
+
+    <!-- Row 1: ROI Trend + Contribution Profit -->
+    <div class="g4">
+      <div class="card">
+        <div class="card-title"><span class="icon">📈</span>Monthly ROI % by Channel</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="ch-roi-trend"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">💰</span>Monthly Contribution Profit by Channel</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="ch-roi-profit"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Row 2: CP vs Avg Inv Cost divergence trackers (per channel) -->
+    <div class="g4">
+      <div class="card">
+        <div class="card-title"><span class="icon">📉</span>Omni Total — Contribution Profit vs Avg Inventory Cost</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="ch-roi-omni-div"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">📉</span>Walmart — Contribution Profit vs Avg Inventory Cost</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="ch-roi-wmt-div"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Row 3: Full Summary Table -->
+    <div class="g1">
+      <div class="card">
+        <div class="card-title"><span class="icon">🏆</span>P&L Summary by Channel — Jan to Apr 2026</div>
+        <table class="tbl" id="roi-summary-tbl">
+          <thead><tr><th>Channel</th><th>Gross Revenue</th><th>Net Revenue</th><th>Gross Profit</th><th>Gross Margin%</th><th>Contribution Profit</th><th>Contribution Margin%</th><th>Avg Inv Cost</th><th>ROI</th></tr></thead>
+          <tbody id="roi-summary-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /view-roi -->
+
+  <!-- ══ EXCESS INVENTORY VIEW ══ -->
+  <div id="view-excess" style="display:none">
+
+    <!-- KPI CARDS -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+      <div class="kpi c1"><div class="k-label">Total Excess Cost</div><div class="k-value" id="ek-cost">—</div><div class="k-sub">Landed cost × excess units</div></div>
+      <div class="kpi c3"><div class="k-label">Total Excess Units</div><div class="k-value" id="ek-units">—</div><div class="k-sub">Across all brands</div></div>
+      <div class="kpi c4"><div class="k-label">Excess SKUs</div><div class="k-value" id="ek-skus">—</div><div class="k-sub">SKUs with excess > 0</div></div>
+      <div class="kpi c2"><div class="k-label">Excess % of Total Inv</div><div class="k-value" id="ek-pct">—</div><div class="k-sub">Excess units ÷ total units on hand</div></div>
+    </div>
+
+    <!-- WEEKLY PACE TRACKER -->
+    <div class="card" id="excess-tracker" style="margin-bottom:20px"></div>
+
+    <!-- Row 1: Cost by Brand + Units by Brand -->
+    <div class="g4">
+      <div class="card">
+        <div class="card-title"><span class="icon">💰</span>Excess Cost by Brand</div>
+        <div class="chart-wrap" style="height:240px"><canvas id="ch-ex-cost-brand"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">📦</span>Excess Units by Brand</div>
+        <div class="chart-wrap" style="height:240px"><canvas id="ch-ex-units-brand"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Row 2: Classification + Channel connectivity -->
+    <div class="g4">
+      <div class="card">
+        <div class="card-title"><span class="icon">🏷️</span>Excess Cost by Classification</div>
+        <div class="chart-wrap" style="height:240px"><canvas id="ch-ex-class"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">🔗</span>Excess Units by # Connected Channels</div>
+        <div class="chart-wrap" style="height:240px"><canvas id="ch-ex-channels"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Row 4: Top 20 by Units + Top 20 by Cost -->
+    <div class="g4">
+      <div class="card">
+        <div class="card-title"><span class="icon">🔝</span>Top 20 Excess ASINs by Units</div>
+        <table class="tbl">
+          <thead><tr><th>ASIN</th><th>Brand</th><th>Excess Units</th><th>Excess $</th></tr></thead>
+          <tbody id="ex-top-units-tbody"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">🔝</span>Top 20 Excess ASINs by Cost</div>
+        <table class="tbl">
+          <thead><tr><th>ASIN</th><th>Brand</th><th>Excess $</th><th>Excess Units</th></tr></thead>
+          <tbody id="ex-top-cost-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Row 5: Channel gap table -->
+    <div class="g1">
+      <div class="card">
+        <div class="card-title"><span class="icon">⚠️</span>Channel Gap — High Excess ASINs with Low Connectivity (≤3 channels)</div>
+        <table class="tbl">
+          <thead><tr><th>ASIN</th><th>Brand</th><th>Excess Units</th><th>Excess $</th><th>Connected Channels</th><th>Connected To</th></tr></thead>
+          <tbody id="ex-gap-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /view-excess -->
+
+  <!-- ══ INVENTORY AGE VIEW ══ -->
+  <div id="view-age" style="display:none">
+
+    <!-- KPI CARDS -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px">
+      <div class="kpi c1"><div class="k-label">Total Inventory Units</div><div class="k-value" id="ak-total">—</div><div class="k-sub" id="ak-snap">Latest snapshot</div></div>
+      <div class="kpi c2"><div class="k-label">Fresh ≤60 Days</div><div class="k-value" id="ak-fresh">—</div><div class="k-sub">% of total inventory</div></div>
+      <div class="kpi c3"><div class="k-label">Aged 61-180 Days</div><div class="k-value" id="ak-aged60">—</div><div class="k-sub">% of total inventory</div></div>
+      <div class="kpi c5"><div class="k-label">Aged >180 Days</div><div class="k-value" id="ak-aged180">—</div><div class="k-sub">% of total inventory</div></div>
+      <div class="kpi c4"><div class="k-label">Deep-Aged Units (>180d)</div><div class="k-value" id="ak-deepunits">—</div><div class="k-sub">Units to prioritize</div></div>
+    </div>
+
+    <!-- LIQUIDATION PACE TRACKER -->
+    <div class="card" id="age-tracker" style="margin-bottom:20px"></div>
+
+    <!-- Row 1: Age distribution + Age trend -->
+    <div class="g4">
+      <div class="card">
+        <div class="card-title"><span class="icon">📊</span>Inventory Age Distribution</div>
+        <div class="chart-wrap" style="height:240px"><canvas id="ch-age-dist"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">📉</span>Fresh vs Aged — Trend Over Time</div>
+        <div class="chart-wrap" style="height:240px"><canvas id="ch-age-trend"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Row 2: % Aged >180 trend (full width) -->
+    <div class="g1">
+      <div class="card">
+        <div class="card-title"><span class="icon">🎯</span>% Aged >180 Days — Trend</div>
+        <div class="chart-wrap" style="height:240px"><canvas id="ch-age-180trend"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Row 3: Oldest inventory table -->
+    <div class="g1">
+      <div class="card">
+        <div class="card-title"><span class="icon">⏳</span>Oldest Inventory — Top SKUs by Deep-Aged Units (>180 days)</div>
+        <table class="tbl">
+          <thead><tr><th>Item ID</th><th>Description</th><th>Total Qty</th><th>Units >180d</th><th>Units 330+d</th><th>% Aged >180d</th></tr></thead>
+          <tbody id="age-oldest-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /view-age -->
+
+</div><!-- /page -->
+</div><!-- /content-kpis -->
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CONFIG — replace WEB_APP_URL after deploying Apps Script
+// ═══════════════════════════════════════════════════════
+const SHEET_ID = '1IKaDicYyGBbLwx135MQBtXVJhcxEC2a1f4EVlovWDIU';
+const WEB_APP_URL  = 'https://script.google.com/macros/s/AKfycbxRBkbXanAJTfNV0Ht33D0R-_WBk_z6cbS-I21kpS32xuytrw9g9ax1ZDA73rxZX9Zm/exec'; // ← paste your Omni Sales Apps Script URL here
+const FCST_APP_URL = 'https://script.google.com/macros/s/AKfycbzHsvuLA--TFncJeFGUxbJh8CerxPO7s5bFh06RgvUIYg2LZtkwrwOaiH5bUp5tZ8iz/exec'; // ← paste your Forecast Apps Script URL here
+const HIST_APP_URL = 'https://script.google.com/macros/s/AKfycbxDUp_vQ5Xdt0nLWnpHl6QZu4vJSuWSzQuMmiZDauyWi1dZ7BNUPykf3nIdazVpESkn/exec'; // ← paste your Historical GMV Apps Script URL here
+const ROI_APP_URL  = 'https://script.google.com/macros/s/AKfycbwD3VsSkAiKyy_vZXI0U_-ZryXYRGP9jgjs4w40EMCe2D7PPxMxzRXZfuS_tPGO25W1TA/exec'; // ROI Report
+const EXCESS_APP_URL = 'https://script.google.com/macros/s/AKfycbx_EOgQOBMo5-nqaVZkXHqT5KJJLHyQv1vOGPzA1i130OdUcTwx9HGyEDOmlwmyM1I8DQ/exec'; // Excess Inventory
+const AGE_APP_URL = 'https://script.google.com/macros/s/AKfycbzh8VEt27_aWo4m_EWKOIqV30MWU9gEPqSXeMoKifuPmhmQb4iwcQf-RwhEn04X5ZOb/exec'; // Inventory Age
+const BUDGET_APP_URL = 'https://script.google.com/macros/s/AKfycbzprBv_d_QQTImRzb89N7PkuyoXmJb7sjNLeHomEmuPORK_DnxILgZUBue9YyErT7-f9A/exec'; // Omni Budget
+const TRACKER_APP_URL = 'https://script.google.com/macros/s/AKfycbzM5nBo5l9KBilN-SM_aVHbeRr2ZDYjym-wnqdnah6lpW_Z8tBoUVqHhQYGgQqfc5NO/exec'; // Weekly Pace Tracker
+
+// ═══════════════════════════════════════════════════════
+//  GLOBALS
+// ═══════════════════════════════════════════════════════
+let ROWS = [];
+let METRIC = 'gmv'; // 'gmv' or 'units'
+let charts = {};
+
+const MKT_COLORS = ['#4f46e5','#10b981','#ec4899','#f59e0b','#06b6d4','#6366f1','#8b5cf6','#ef4444','#0ea5e9','#f97316'];
+const CAT_COLORS = ['#4f46e5','#10b981','#ec4899','#f59e0b','#06b6d4','#ef4444','#8b5cf6','#84cc16','#f97316','#0ea5e9','#d946ef','#14b8a6'];
+const MN = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// ═══════════════════════════════════════════════════════
+//  FORMAT HELPERS
+// ═══════════════════════════════════════════════════════
+const fmt$ = n => '$' + Math.round(n).toLocaleString();
+const fmtN = n => Math.round(n).toLocaleString();
+const fmtP = n => n.toFixed(1) + '%';
+const fmtK = n => n >= 1000 ? '$' + (n/1000).toFixed(0) + 'k' : '$' + Math.round(n);
+
+function parsePrice(s) { return parseFloat(String(s||'').replace(/[$,\s]/g,'')) || 0; }
+function parseDate(s) {
+  if (!s) return null;
+  // Excel serial dates
+  if (typeof s === 'number') {
+    const d = new Date(Math.round((s - 25569) * 86400 * 1000));
+    return d;
+  }
+  const d = new Date(s); return isNaN(d) ? null : d;
+}
+
+// ═══════════════════════════════════════════════════════
+//  STATUS
+// ═══════════════════════════════════════════════════════
+function setStatus(msg, type='ok') {
+  document.getElementById('status-txt').textContent = msg;
+  const dot = document.getElementById('status-dot');
+  dot.className = 'dot' + (type==='loading' ? ' loading' : type==='error' ? ' error' : '');
+}
+
+// ═══════════════════════════════════════════════════════
+//  FETCH DATA
+// ═══════════════════════════════════════════════════════
+async function loadData() {
+  setStatus('Fetching live data…', 'loading');
+  document.getElementById('ls-sub').textContent = 'Connecting to Google Sheets…';
+
+  try {
+    let rows;
+
+    if (WEB_APP_URL) {
+      // ── Via Apps Script Web App ──
+      document.getElementById('ls-sub').textContent = 'Loading via Apps Script…';
+      const res = await fetch(WEB_APP_URL + '?t=' + Date.now(), {cache: 'no-store'});
+      if (!res.ok) throw new Error('Apps Script returned ' + res.status);
+      const json = await res.json();
+      if (json.headers && json.rows) {
+        // Compact format: {headers: [...], rows: [[...], ...]}
+        rows = json.rows.map(r => {
+          const obj = {};
+          json.headers.forEach((h, i) => obj[h] = r[i]);
+          return obj;
+        });
+      } else {
+        // Old format: array of objects
+        rows = json;
+      }
+    } else {
+      // ── Fallback: gviz CSV ──
+      document.getElementById('ls-sub').textContent = 'Loading via Google Sheets CSV…';
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Master%20Data`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Could not reach sheet (' + res.status + ')');
+      const txt = await res.text();
+      if (txt.includes('<!DOCTYPE')) throw new Error('Sheet not public — please share as "Anyone with the link can view"');
+      rows = parseCSV(txt);
+    }
+
+    processRows(rows);
+    populateFilters();
+    applyFilters();
+
+    setStatus('✓ Live · ' + ROWS.length.toLocaleString() + ' rows · ' + new Date().toLocaleTimeString(), 'ok');
+    document.getElementById('ls').style.display = 'none';
+    document.getElementById('tb-badge').textContent = 'YTD 2026 · Live';
+
+  } catch(e) {
+    console.error(e);
+    setStatus('⚠ ' + e.message, 'error');
+    document.getElementById('ls').innerHTML = `
+      <div style="text-align:center;padding:40px;max-width:460px">
+        <div style="font-size:40px;margin-bottom:12px">⚠️</div>
+        <div style="font-size:17px;font-weight:800;color:#ef4444;margin-bottom:8px">Could not load data</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:16px">${e.message}</div>
+        <div style="font-size:11px;color:#6b7280;background:#f9fafb;padding:14px;border-radius:8px;text-align:left;line-height:1.7">
+          <b>Option A — Apps Script (recommended):</b><br>
+          Paste your Web App URL into the <code>WEB_APP_URL</code> variable at the top of this file.<br><br>
+          <b>Option B — Direct CSV:</b><br>
+          In Google Sheets → Share → "Anyone with the link" → Viewer
+        </div>
+        <button onclick="location.reload()" style="margin-top:16px;background:#4f46e5;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:13px;font-weight:700;cursor:pointer">↺ Try Again</button>
+      </div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  CSV PARSER
+// ═══════════════════════════════════════════════════════
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = parseCSVLine(lines[0]).map(h => h.trim().replace(/^"|"$/g,''));
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const vals = parseCSVLine(lines[i]);
+    if (vals.every(v => !v.trim())) continue;
+    const obj = {};
+    headers.forEach((h, j) => obj[h] = (vals[j]||'').trim().replace(/^"|"$/g,''));
+    rows.push(obj);
+  }
+  return rows;
+}
+function parseCSVLine(line) {
+  const r=[]; let c='', q=false;
+  for (let i=0; i<line.length; i++) {
+    if (line[i]==='"') q=!q;
+    else if (line[i]===',' && !q) { r.push(c); c=''; }
+    else c+=line[i];
+  }
+  r.push(c); return r;
+}
+
+// ═══════════════════════════════════════════════════════
+//  PROCESS ROWS
+// ═══════════════════════════════════════════════════════
+function processRows(raw) {
+  ROWS = raw.map(r => {
+    const keys = Object.keys(r);
+    const get = (...terms) => {
+      const k = keys.find(k2 => terms.some(t => k2.toLowerCase().includes(t.toLowerCase())));
+      return k ? r[k] : '';
+    };
+    const sales = parsePrice(get('Sales','sales','gmv','revenue'));
+    const qty = parseFloat(get('Quantity','qty','units') || 0) || 0;
+    const dt    = parseDate(get('Date','date'));
+    const mnRaw = get('Month','month');
+    const mn    = mnRaw ? (parseInt(mnRaw) || (dt ? dt.getMonth()+1 : 0)) : (dt ? dt.getMonth()+1 : 0);
+    return {
+      marketplace: get('Marketplace','marketplace','channel') || 'Unknown',
+      date: dt,
+      orderId: get('Order ID','orderid','order id','order_id'),
+      quantity: qty,
+      sales,
+      unitPrice: parsePrice(get('Unit Price','unit price','unitprice','price')),
+      asin: get('ASIN','asin','sku'),
+      category: (()=>{
+        const ac = get('Acquco Category','acquco');
+        const c  = ac && ac !== '#N/A' && ac !== 'N/A' ? ac : get('Category','category');
+        return (c && c !== '#N/A' && c !== 'N/A') ? c.trim() : 'Other';
+      })(),
+      title: get('Product Title','title','product name','name'),
+      month: mn,
+      dow: dt ? dt.getDay() : -1,
+    };
+  }).filter(r => r.marketplace && r.marketplace !== '' && r.marketplace !== 'Unknown');
+}
+
+// ═══════════════════════════════════════════════════════
+//  FILTERS
+// ═══════════════════════════════════════════════════════
+function populateFilters() {
+  const months = [...new Set(ROWS.map(r=>r.month))].filter(m=>m>0).sort((a,b)=>a-b);
+  const mkts   = [...new Set(ROWS.map(r=>r.marketplace))].filter(Boolean).sort();
+  const cats   = [...new Set(ROWS.map(r=>r.category))].filter(Boolean).sort();
+
+  const mSel = document.getElementById('f-month');
+  mSel.innerHTML = '<option value="all">All Months</option>' + months.map(m=>`<option value="${m}">${MN[m]||'Month '+m}</option>`).join('');
+
+  const mkSel = document.getElementById('f-mkt');
+  mkSel.innerHTML = '<option value="all">All Marketplaces</option>' + mkts.map(m=>`<option>${m}</option>`).join('');
+
+  const cSel = document.getElementById('f-cat');
+  cSel.innerHTML = '<option value="all">All Categories</option>' + cats.map(c=>`<option>${c}</option>`).join('');
+}
+
+function getFiltered() {
+  const fm  = document.getElementById('f-month').value;
+  const fmk = document.getElementById('f-mkt').value;
+  const fc  = document.getElementById('f-cat').value;
+  return ROWS.filter(r =>
+    (fm  === 'all' || r.month === parseInt(fm)) &&
+    (fmk === 'all' || r.marketplace === fmk) &&
+    (fc  === 'all' || r.category === fc)
+  );
+}
+
+function resetFilters() {
+  document.getElementById('f-month').value='all';
+  document.getElementById('f-mkt').value='all';
+  document.getElementById('f-cat').value='all';
+  applyFilters();
+}
+
+function setMetric(m) {
+  METRIC = m;
+  document.getElementById('m-gmv').className  = m==='gmv'   ? 'active' : '';
+  document.getElementById('m-units').className = m==='units' ? 'active' : '';
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════════════════
+//  AGGREGATION HELPERS
+// ═══════════════════════════════════════════════════════
+function groupBy(rows, key) {
+  return rows.reduce((m,r)=>{ const k=r[key]||'Unknown'; (m[k]=m[k]||[]).push(r); return m; }, {});
+}
+const sumSales = rows => rows.reduce((s,r)=>s+r.sales, 0);
+const sumUnits = rows => rows.reduce((s,r)=>s+(parseFloat(r.quantity)||0), 0);
+const cntOrders= rows => rows.length;
+const primary  = rows => METRIC==='gmv' ? sumSales(rows) : sumUnits(rows);
+
+// ═══════════════════════════════════════════════════════
+//  MAIN RENDER
+// ═══════════════════════════════════════════════════════
+function applyFilters() {
+  if (!ROWS.length) return;
+  const rows = getFiltered();
+  if (!rows.length) return;
+
+  const totalGmv   = sumSales(rows);
+  const totalUnits = sumUnits(rows);
+  const totalOrders= cntOrders(rows);
+  const aov        = totalOrders>0 ? totalGmv/totalOrders : 0;
+  const mkts       = new Set(rows.map(r=>r.marketplace)).size;
+  const asins      = new Set(rows.map(r=>r.asin)).size;
+  const cats       = new Set(rows.map(r=>r.category).filter(c=>c&&c!=='Other'&&c!=='#N/A')).size;
+
+  document.getElementById('k-gmv').textContent   = fmt$(totalGmv);
+  document.getElementById('k-orders').textContent= fmtN(totalOrders);
+  document.getElementById('k-units').textContent = fmtN(Math.round(totalUnits));
+  document.getElementById('k-aov').textContent   = '$'+aov.toFixed(2);
+  document.getElementById('k-mkts').textContent  = mkts;
+  document.getElementById('k-asins').textContent = asins;
+  document.getElementById('k-cats').textContent  = cats;
+
+  // Update titles based on metric
+  const pm = METRIC==='gmv' ? 'GMV' : 'Units';
+  document.getElementById('monthly-title').textContent = `Monthly ${pm} + ${METRIC==='gmv'?'Units':'GMV'} Trend`;
+  document.getElementById('mktline-title').textContent = `Marketplace ${pm} by Month`;
+  document.getElementById('catbar-title').textContent  = `Top Categories — ${pm}`;
+  document.getElementById('dow-title').textContent     = `${pm} by Day of Week`;
+  document.getElementById('heat-title').textContent    = `Category ${pm} Heatmap — Monthly`;
+  document.getElementById('asin-title').textContent    = `Top 20 ASINs by ${pm}`;
+  document.getElementById('asin-th-primary').textContent = pm;
+  document.getElementById('asin-th-secondary').textContent = METRIC==='gmv' ? 'Units' : 'GMV';
+  document.getElementById('mkt-th-metric').textContent = pm;
+
+  buildMonthly(rows);
+  buildDonut(rows, totalGmv, totalUnits);
+  buildMktLine(rows);
+  buildCatBar(rows);
+  buildCumul(rows);
+  buildDOW(rows);
+  buildHeatmap(rows);
+  buildAsinTable(rows);
+  buildMktTable(rows, totalGmv, totalUnits);
+  buildRisk(rows, totalGmv);
+  buildMoM(rows);
+  buildAOV(rows);
+  buildSpikes(rows);
+}
+
+// ═══════════════════════════════════════════════════════
+//  CHART: MONTHLY
+// ═══════════════════════════════════════════════════════
+function buildMonthly(rows) {
+  const byM = groupBy(rows,'month');
+  const months = Object.keys(byM).map(Number).filter(m=>m&&m>=1&&m<=12).sort((a,b)=>a-b);
+  const labels = months.map(m=>MN[m]||'M'+m);
+  const primary_data = months.map(m=>primary(byM[m]));
+  const sec_data     = months.map(m=>METRIC==='gmv' ? sumUnits(byM[m]) : sumSales(byM[m]));
+
+  // Omni Budget line — shows in only TWO cases (budget isn't per-marketplace):
+  //  (1) ALL marketplaces selected      → line = Omni + Walmart + TikTok
+  //  (2) Omni group only (Walmart & TikTok unchecked, all other mkts checked) → line = Omni only
+  // Any other selection → no line.
+  const ALL_MKTS = [...new Set(ROWS.map(r=>r.marketplace))].filter(Boolean);
+  const OMNI_GROUP = ALL_MKTS.filter(m => m!=='Walmart' && m!=='TikTok');
+  const mktSel = getChecked('ms-mkt');
+
+  let budgetMode = null; // 'all' | 'omni' | null
+  if (METRIC==='gmv') {
+    if (mktSel === 'all') {
+      budgetMode = 'all';
+    } else if (Array.isArray(mktSel)) {
+      const sel = new Set(mktSel);
+      const hasWalmart = sel.has('Walmart');
+      const hasTikTok  = sel.has('TikTok');
+      const omniAllPresent = OMNI_GROUP.every(m => sel.has(m));
+      const onlyOmni = omniAllPresent && !hasWalmart && !hasTikTok && sel.size === OMNI_GROUP.length;
+      if (onlyOmni) budgetMode = 'omni';
+    }
+  }
+  const showBudget = budgetMode !== null && Object.keys(OMNI_BUDGET).length>0;
+  const budgetFor = (m) => {
+    if (budgetMode === 'all') return (OMNI_BUDGET[m]||0) + (WALMART_BUDGET[m]||0) + (TIKTOK_BUDGET[m]||0);
+    if (budgetMode === 'omni') return (OMNI_BUDGET[m]!=null ? OMNI_BUDGET[m] : null);
+    return null;
+  };
+  const budget_data = months.map(m => {
+    if (!showBudget) return null;
+    const v = budgetFor(m);
+    return (v!=null && v>0) ? v : null;
+  });
+  const budgetLabel = budgetMode==='all' ? 'Total Budget (Omni+Walmart+TikTok)' : 'Actual Omni Budget';
+
+  // Adjusted goal line (Realized Omni Goals) — shows ONLY in the Omni-group-only case.
+  const showAdjusted = budgetMode==='omni' && Object.keys(REALIZED_OMNI).length>0;
+  const adjusted_data = months.map(m => {
+    if (!showAdjusted) return null;
+    const v = REALIZED_OMNI[m];
+    return (v!=null && v>0) ? v : null;
+  });
+  const adjustedLabel = 'Adjusted Omni Goal (Realized)';
+
+  const datasets = [
+    { type:'bar', label: METRIC==='gmv'?'GMV ($)':'Units', data:primary_data, backgroundColor:'#4f46e5', borderRadius:5, yAxisID:'y', order:2 },
+    { type:'line', label: METRIC==='gmv'?'Units':'GMV ($)', data:sec_data, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.1)', tension:.4, fill:true, yAxisID:'y2', order:1, pointBackgroundColor:'#10b981', pointRadius:4 }
+  ];
+  if (showBudget) {
+    datasets.push({ type:'line', label:budgetLabel, data:budget_data, borderColor:'#ef4444', backgroundColor:'transparent', borderDash:[6,4], tension:.3, yAxisID:'y', order:0, pointBackgroundColor:'#ef4444', pointRadius:3, borderWidth:2, spanGaps:false });
+  }
+  if (showAdjusted) {
+    datasets.push({ type:'line', label:adjustedLabel, data:adjusted_data, borderColor:'#f59e0b', backgroundColor:'transparent', borderDash:[2,3], tension:.3, yAxisID:'y', order:0, pointBackgroundColor:'#f59e0b', pointRadius:3, borderWidth:2, spanGaps:false });
+  }
+  const showLegend = showBudget || showAdjusted;
+  const legendLabels = [budgetLabel, adjustedLabel];
+
+  const ctx = document.getElementById('ch-monthly').getContext('2d');
+  if (charts.monthly) charts.monthly.destroy();
+  charts.monthly = new Chart(ctx, {
+    data: { labels, datasets },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:showLegend, labels:{boxWidth:10,font:{size:9},filter:i=>legendLabels.indexOf(i.text)>=0}}, tooltip:{callbacks:{label:c=>{
+        if (c.dataset.label===budgetLabel) return budgetLabel+': '+fmt$(c.raw);
+        if (c.dataset.label===adjustedLabel) return adjustedLabel+': '+fmt$(c.raw);
+        return METRIC==='gmv'?(c.datasetIndex===0?fmt$(c.raw):fmtN(c.raw)+' units'):(c.datasetIndex===0?fmtN(c.raw)+' units':fmt$(c.raw));
+      }}}},
+      scales:{
+        y:{position:'left', ticks:{callback:v=>METRIC==='gmv'?fmtK(v):fmtN(v), font:{size:10}}, grid:{color:'#f0f4f8'}},
+        y2:{position:'right', ticks:{font:{size:10}}, grid:{display:false}}
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  CHART: DONUT
+// ═══════════════════════════════════════════════════════
+function buildDonut(rows, totalGmv, totalUnits) {
+  const byM = groupBy(rows,'marketplace');
+  const sorted = Object.entries(byM).map(([n,rs])=>({n, v:primary(rs)})).sort((a,b)=>b.v-a.v);
+  const total = sorted.reduce((s,m)=>s+m.v,0);
+
+  const ctx = document.getElementById('ch-donut').getContext('2d');
+  if (charts.donut) charts.donut.destroy();
+  charts.donut = new Chart(ctx, {
+    type:'doughnut',
+    data:{ labels:sorted.map(m=>m.n), datasets:[{data:sorted.map(m=>m.v), backgroundColor:MKT_COLORS, borderWidth:2, borderColor:'#fff', hoverOffset:5}]},
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'64%',
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.label}: ${METRIC==='gmv'?fmt$(c.raw):fmtN(c.raw)} (${fmtP(total>0?c.raw/total*100:0)})`}}}
+    }
+  });
+
+  document.getElementById('mkt-legend').innerHTML = sorted.map((m,i)=>
+    `<span class="leg"><span class="leg-dot" style="background:${MKT_COLORS[i]}"></span>${m.n} ${total>0?fmtP(m.v/total*100):'0%'}</span>`
+  ).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  CHART: MKT LINE
+// ═══════════════════════════════════════════════════════
+function buildMktLine(rows) {
+  const byM = groupBy(rows,'marketplace');
+  const allMonths = [...new Set(rows.map(r=>r.month))].filter(m=>m&&m>=1&&m<=12).sort((a,b)=>a-b);
+  const allMkts = Object.entries(byM).sort((a,b)=>primary(b[1])-primary(a[1]));
+
+  const ctx = document.getElementById('ch-mktline').getContext('2d');
+  if (charts.mktLine) charts.mktLine.destroy();
+  charts.mktLine = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels: allMonths.map(m=>MN[m]||'M'+m),
+      datasets: allMkts.map(([name,mRows],i)=>{
+        const byMo = groupBy(mRows,'month');
+        return { label:name, data:allMonths.map(m=>primary(byMo[m]||[])), borderColor:MKT_COLORS[i], backgroundColor:'transparent', tension:.4, pointRadius:3, pointBackgroundColor:MKT_COLORS[i], borderWidth:2 };
+      })
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${METRIC==='gmv'?fmt$(c.raw):fmtN(c.raw)}`}}},
+      scales:{y:{ticks:{callback:v=>METRIC==='gmv'?fmtK(v):fmtN(v), font:{size:10}}, grid:{color:'#f0f4f8'}}, x:{ticks:{font:{size:10}}}}
+    }
+  });
+
+  document.getElementById('mkt-line-legend').innerHTML = allMkts.map(([name],i)=>
+    `<span class="leg"><span class="leg-dot" style="background:${MKT_COLORS[i]}"></span>${name}</span>`
+  ).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  CHART: CATEGORY BAR
+// ═══════════════════════════════════════════════════════
+function buildCatBar(rows) {
+  const byC = groupBy(rows,'category');
+  const sorted = Object.entries(byC).map(([n,rs])=>({n,v:primary(rs)})).sort((a,b)=>b.v-a.v).slice(0,12);
+
+  const ctx = document.getElementById('ch-catbar').getContext('2d');
+  if (charts.catBar) charts.catBar.destroy();
+  const wh = ctx.canvas.closest('.chart-wrap');
+  wh.style.height = Math.max(200, sorted.length*30+30)+'px';
+
+  charts.catBar = new Chart(ctx, {
+    type:'bar',
+    data:{ labels:sorted.map(c=>c.n.substring(0,26)), datasets:[{label:METRIC==='gmv'?'GMV':'Units', data:sorted.map(c=>c.v), backgroundColor:CAT_COLORS, borderRadius:4}]},
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>METRIC==='gmv'?fmt$(c.raw):fmtN(c.raw)+' units'}}},
+      scales:{x:{ticks:{callback:v=>METRIC==='gmv'?fmtK(v):fmtN(v), font:{size:9}}, grid:{color:'#f0f4f8'}}, y:{ticks:{font:{size:9}}}}
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  CHART: CUMULATIVE
+// ═══════════════════════════════════════════════════════
+function buildCumul(rows) {
+  const byM = groupBy(rows,'month');
+  const months = Object.keys(byM).map(Number).sort((a,b)=>a-b);
+  let running=0;
+  const cumul   = months.map(m=>{running+=sumSales(byM[m]);return running;});
+  const monthly = months.map(m=>sumSales(byM[m]));
+
+  const ctx = document.getElementById('ch-cumul').getContext('2d');
+  if (charts.cumul) charts.cumul.destroy();
+  charts.cumul = new Chart(ctx, {
+    type:'line',
+    data:{ labels:months.map(m=>MN[m]||'M'+m), datasets:[
+      {label:'Cumulative',data:cumul,borderColor:'#4f46e5',backgroundColor:'rgba(79,70,229,.1)',fill:true,tension:.4,pointRadius:4,pointBackgroundColor:'#4f46e5'},
+      {label:'Monthly',data:monthly,borderColor:'#ec4899',borderDash:[5,3],backgroundColor:'transparent',tension:.4,pointRadius:3,pointBackgroundColor:'#ec4899'}
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt$(c.raw)}}},
+      scales:{y:{ticks:{callback:fmtK, font:{size:10}}, grid:{color:'#f0f4f8'}}, x:{ticks:{font:{size:10}}}}
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  DOW BARS
+// ═══════════════════════════════════════════════════════
+function buildDOW(rows) {
+  const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dow={};
+  rows.forEach(r=>{ if(r.dow<0)return; const d=dayNames[r.dow]; dow[d]=(dow[d]||0)+(METRIC==='gmv'?r.sales:r.quantity); });
+  const order=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const data=order.map(d=>({d,v:dow[d]||0})).sort((a,b)=>b.v-a.v);
+  const maxV=Math.max(...data.map(d=>d.v),1);
+  const total=data.reduce((s,d)=>s+d.v,0);
+  const colors=['#f59e0b','#4f46e5','#06b6d4','#10b981','#6366f1','#8b5cf6','#ec4899'];
+  document.getElementById('dow-bars').innerHTML = data.map((d,i)=>`
+    <div class="dow-row">
+      <div class="dl">${d.d}</div>
+      <div class="dtrack"><div class="dfill" style="width:${(d.v/maxV*100).toFixed(1)}%;background:${colors[i]}"><span>${total>0?fmtP(d.v/total*100):''}</span></div></div>
+      <div class="dval">${METRIC==='gmv'?fmt$(d.v):fmtN(d.v)}</div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  HEATMAP
+// ═══════════════════════════════════════════════════════
+function buildHeatmap(rows) {
+  const byC = groupBy(rows,'category');
+  const allMonths = [...new Set(rows.map(r=>r.month))].filter(m=>m&&m>=1&&m<=12).sort((a,b)=>a-b);
+  const topCats = Object.entries(byC).sort((a,b)=>primary(b[1])-primary(a[1])).slice(0,14);
+  const allVals = topCats.flatMap(([,rs])=>allMonths.map(m=>primary(groupBy(rs,'month')[m]||[])));
+  const maxV = Math.max(...allVals, 1);
+
+  function heatColor(v) {
+    const p=v/maxV;
+    if(p<0.05) return {bg:'#fff5f5',fg:'#c53030'};
+    if(p<0.15) return {bg:'#fed7d7',fg:'#742a2a'};
+    if(p<0.3)  return {bg:'#fbb6ce',fg:'#702459'};
+    if(p<0.5)  return {bg:'#bbf7d0',fg:'#14532d'};
+    if(p<0.7)  return {bg:'#4ade80',fg:'#14532d'};
+    return {bg:'#15803d',fg:'#f0fff4'};
+  }
+
+  const thead=`<thead><tr><th style="text-align:left;min-width:120px">Category</th>${allMonths.map(m=>`<th>${MN[m]||'M'+m}</th>`).join('')}<th>Trend</th></tr></thead>`;
+  const tbody=topCats.map(([cat,cRows])=>{
+    const byM=groupBy(cRows,'month');
+    const vals=allMonths.map(m=>primary(byM[m]||[]));
+    const trendUp=vals.length>1&&vals[vals.length-1]>vals[0];
+    const cells=vals.map((v,i)=>{
+      const c=heatColor(v);
+      const prev=i>0?vals[i-1]:null;
+      const mom=prev>0?((v-prev)/prev*100):null;
+      const ms=mom===null?'':`<div style="font-size:8px;color:${mom>=0?'#166534':'#991b1b'}">${mom>=0?'+':''}${mom.toFixed(0)}%</div>`;
+      return `<td style="background:${c.bg};color:${c.fg}">${METRIC==='gmv'?'$'+(v/1000).toFixed(0)+'k':fmtN(v)}${ms}</td>`;
+    }).join('');
+    const trend=trendUp?'<span style="color:#16a34a;font-weight:800">↑</span>':'<span style="color:#dc2626;font-weight:800">↓</span>';
+    return `<tr><td style="font-weight:700;font-size:10px;color:var(--text)">${cat}</td>${cells}<td style="text-align:center">${trend}</td></tr>`;
+  }).join('');
+  document.getElementById('heatmap').innerHTML = thead+`<tbody>${tbody}</tbody>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  ASIN TABLE
+// ═══════════════════════════════════════════════════════
+function buildAsinTable(rows) {
+  const byA = groupBy(rows,'asin');
+  const sorted = Object.entries(byA).map(([asin,rs])=>({
+    asin, gmv:sumSales(rs), units:sumUnits(rs), orders:cntOrders(rs),
+    avgPrice:sumSales(rs)/Math.max(sumUnits(rs),1),
+    cat:rs[0].category, title:rs[0].title
+  })).sort((a,b)=>b[METRIC==='gmv'?'gmv':'units']-a[METRIC==='gmv'?'gmv':'units']).slice(0,20);
+
+  document.getElementById('asin-tbody').innerHTML = sorted.map((a,i)=>`
+    <tr>
+      <td style="color:var(--muted);font-weight:700">${i+1}</td>
+      <td><code style="font-size:9px;background:#f0f4f8;padding:2px 5px;border-radius:4px">${a.asin}</code></td>
+      <td><span class="badge b">${a.cat.substring(0,22)}</span></td>
+      <td style="font-weight:800">${METRIC==='gmv'?fmt$(a.gmv):fmtN(a.units)}</td>
+      <td>${METRIC==='gmv'?fmtN(a.units):fmt$(a.gmv)}</td>
+      <td>${fmtN(a.orders)}</td>
+      <td>$${a.avgPrice.toFixed(2)}</td>
+      <td style="font-size:10px;color:var(--muted);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.title}</td>
+    </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  MARKETPLACE TABLE
+// ═══════════════════════════════════════════════════════
+function buildMktTable(rows, totalGmv, totalUnits) {
+  const byM = groupBy(rows,'marketplace');
+  const total = METRIC==='gmv' ? totalGmv : totalUnits;
+  const sorted = Object.entries(byM).map(([name,rs])=>({
+    name, gmv:sumSales(rs), units:sumUnits(rs), orders:cntOrders(rs),
+    aov:sumSales(rs)/Math.max(cntOrders(rs),1), primary_v:primary(rs)
+  })).sort((a,b)=>b.primary_v-a.primary_v);
+
+  document.getElementById('mkt-tbody').innerHTML = sorted.map((m,i)=>`
+    <tr>
+      <td style="font-weight:700"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${MKT_COLORS[i]};margin-right:6px"></span>${m.name}</td>
+      <td style="font-weight:800">${METRIC==='gmv'?fmt$(m.gmv):fmtN(m.units)}</td>
+      <td>${fmtN(m.units)}</td>
+      <td>${fmtN(m.orders)}</td>
+      <td>$${m.aov.toFixed(2)}</td>
+      <td>
+        <div class="minibar">
+          <div class="track"><div class="fill" style="width:${total>0?Math.min(m.primary_v/total*100,100).toFixed(1):0}%;background:${MKT_COLORS[i]}"></div></div>
+          <span style="font-size:10px;font-weight:800;min-width:32px">${total>0?fmtP(m.primary_v/total*100):'—'}</span>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  CONCENTRATION RISK
+// ═══════════════════════════════════════════════════════
+function buildRisk(rows, totalGmv) {
+  const byC  = groupBy(rows,'category');
+  const byM  = groupBy(rows,'marketplace');
+  const catS = Object.entries(byC).map(([n,rs])=>({n,v:sumSales(rs)})).sort((a,b)=>b.v-a.v);
+  const mktS = Object.entries(byM).map(([n,rs])=>({n,v:sumSales(rs)})).sort((a,b)=>b.v-a.v);
+
+  const risks=[
+    {l:`Top category (${catS[0]?.n||'—'})`, v:catS[0]?.v/totalGmv*100||0, th:35},
+    {l:'Top 3 categories', v:catS.slice(0,3).reduce((s,c)=>s+c.v,0)/totalGmv*100||0, th:65},
+    {l:`Top marketplace (${mktS[0]?.n||'—'})`, v:mktS[0]?.v/totalGmv*100||0, th:35},
+    {l:'Top 2 marketplaces', v:mktS.slice(0,2).reduce((s,m)=>s+m.v,0)/totalGmv*100||0, th:65},
+  ];
+
+  document.getElementById('risk-section').innerHTML = risks.map(r=>{
+    const level=r.v>r.th?'HIGH':r.v>r.th*.75?'MED':'LOW';
+    const col=level==='HIGH'?'#ef4444':level==='MED'?'#f59e0b':'#10b981';
+    const bc=level==='HIGH'?'r':level==='MED'?'y':'g';
+    return `<div class="risk-row">
+      <div class="rl">${r.l}</div>
+      <div class="rtrack"><div class="rfill" style="width:${Math.min(r.v,100).toFixed(1)}%;background:${col}"></div></div>
+      <div class="rpct" style="color:${col}">${r.v.toFixed(1)}%</div>
+      <span class="badge ${bc}">${level}</span>
+    </div>`;
+  }).join('');
+
+  // Low inventory - using hardcoded ASIN data since it's in GMV Analysis sheet
+  const lowInv=[
+    {asin:'B0CJZXPC4K',title:'KOTTO Soaker Hose',inv:7},
+    {asin:'B0C549VV6V',title:'KOTTO Garden Hose 150ft',inv:0},
+    {asin:'B0CJZFHQTW',title:'KOTTO Hose w/ Sprayer',inv:19},
+    {asin:'B0BCMSFXMC',title:'LiBa Bug Zapper 4000V',inv:81},
+    {asin:'B08QCKW8DN',title:'Dikaslon Diaper Bag v2',inv:84},
+    {asin:'B07HL6FV5F',title:'Ruvalino Diaper Bag',inv:107},
+    {asin:'B08L6D34VM',title:'Dikaslon Diaper Bag',inv:154},
+  ];
+  document.getElementById('inv-tbody').innerHTML = lowInv.map(a=>{
+    const bc=a.inv===0?'r':a.inv<50?'r':a.inv<100?'y':'y';
+    const label=a.inv===0?'OUT':a.inv<50?'Critical':a.inv<100?'Low':'Watch';
+    return `<tr>
+      <td><code style="font-size:9px">${a.asin}</code></td>
+      <td style="font-size:10px;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.title}</td>
+      <td style="font-weight:800;color:${a.inv<50?'#ef4444':'#f59e0b'}">${a.inv}</td>
+      <td><span class="badge ${bc}">${label}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  MoM GROWTH TABLE
+// ═══════════════════════════════════════════════════════
+function buildMoM(rows) {
+  const byC = groupBy(rows,'category');
+  const allMonths = [...new Set(rows.map(r=>r.month))].filter(m=>m&&m>=1&&m<=12).sort((a,b)=>a-b);
+
+  const data = Object.entries(byC).map(([cat,cRows])=>{
+    const byM=groupBy(cRows,'month');
+    const vals=allMonths.map(m=>primary(byM[m]||[]));
+    const moms=vals.map((v,i)=>i===0?null:(vals[i-1]>0?(v-vals[i-1])/vals[i-1]*100:null));
+    return {cat, moms, total:primary(cRows)};
+  }).sort((a,b)=>b.total-a.total).slice(0,15);
+
+  const momCols=[1,2,3,4];
+  document.getElementById('mom-tbody').innerHTML = data.map(d=>{
+    const cells=momCols.map(i=>{
+      const v=d.moms[i];
+      if(v===null||v===undefined) return '<td style="color:var(--muted)">—</td>';
+      const col=v>=0?'#16a34a':'#dc2626';
+      return `<td style="font-weight:700;color:${col}">${v>=0?'+':''}${v.toFixed(0)}%</td>`;
+    }).join('');
+    const last=d.moms.filter(m=>m!==null);
+    const trend=last.length>0&&last[last.length-1]>=0?'↑':'↓';
+    const tc=last.length>0&&last[last.length-1]>=0?'#16a34a':'#dc2626';
+    return `<tr><td style="font-weight:700;font-size:10px">${d.cat.substring(0,24)}</td>${cells}<td style="text-align:center;font-weight:800;color:${tc}">${trend}</td></tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  AOV CHART
+// ═══════════════════════════════════════════════════════
+function buildAOV(rows) {
+  const byM = groupBy(rows,'marketplace');
+  const allMonths = [...new Set(rows.map(r=>r.month))].filter(m=>m&&m>=1&&m<=12).sort((a,b)=>a-b);
+  const topMkts = Object.entries(byM).sort((a,b)=>sumSales(b[1])-sumSales(a[1])).slice(0,5);
+
+  const ctx = document.getElementById('ch-aov').getContext('2d');
+  if (charts.aov) charts.aov.destroy();
+  charts.aov = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels: allMonths.map(m=>MN[m]||'M'+m),
+      datasets: topMkts.map(([name,mRows],i)=>{
+        const byMo=groupBy(mRows,'month');
+        return { label:name, data:allMonths.map(m=>{
+          const mo=byMo[m]||[];
+          const orders=cntOrders(mo); return orders>0?sumSales(mo)/orders:0;
+        }), borderColor:MKT_COLORS[i], backgroundColor:'transparent', tension:.4, pointRadius:3, borderWidth:2 };
+      })
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{boxWidth:8,font:{size:9}},position:'bottom'}, tooltip:{callbacks:{label:c=>`${c.dataset.label}: $${c.raw.toFixed(2)}`}}},
+      scales:{y:{ticks:{callback:v=>'$'+v.toFixed(0), font:{size:10}}, grid:{color:'#f0f4f8'}}, x:{ticks:{font:{size:10}}}}
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  SEASONAL SPIKES
+// ═══════════════════════════════════════════════════════
+function buildSpikes(rows) {
+  const byA = groupBy(rows,'asin');
+  const spikes = Object.entries(byA).map(([asin,aRows])=>{
+    const byM=groupBy(aRows,'month');
+    const months=Object.keys(byM).map(Number);
+    if(months.length<2) return null;
+    const peakM=months.reduce((best,m)=>sumUnits(byM[m])>sumUnits(byM[best]||[])?m:best,months[0]);
+    return {asin, peakMonth:MN[peakM]||'M'+peakM, peakUnits:sumUnits(byM[peakM]), cat:aRows[0].category, title:aRows[0].title, totalUnits:sumUnits(aRows)};
+  }).filter(Boolean).sort((a,b)=>b.peakUnits-a.peakUnits).slice(0,15);
+
+  document.getElementById('spike-tbody').innerHTML = spikes.map(s=>`
+    <tr>
+      <td><code style="font-size:9px;background:#f0f4f8;padding:2px 4px;border-radius:3px">${s.asin}</code></td>
+      <td><span class="badge b">${s.peakMonth}</span></td>
+      <td style="font-weight:800">${fmtN(s.peakUnits)}</td>
+      <td><span class="badge p">${s.cat.substring(0,18)}</span></td>
+      <td style="font-size:10px;color:var(--muted);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title}</td>
+    </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════════════════
+loadData();
+</script>
+
+<!-- ═══════════════════════════════════════════════════
+     SETUP INSTRUCTIONS (visible when WEB_APP_URL is empty)
+     ═══════════════════════════════════════════════════ -->
+<div id="setup-note" style="display:none"></div>
+<script>
+// Show setup note if no WEB_APP_URL configured
+if (!WEB_APP_URL) {
+  const note = document.getElementById('setup-note');
+  note.style.cssText = 'position:fixed;bottom:16px;right:16px;background:#1e1b4b;color:#fff;padding:14px 18px;border-radius:10px;font-size:11px;max-width:320px;z-index:300;line-height:1.6;box-shadow:0 4px 20px rgba(0,0,0,.3)';
+  note.style.display='block';
+  note.innerHTML = `<b style="font-size:12px">⚡ Connect to Live Data</b><br>
+  To auto-update daily, paste your Apps Script URL into <code style="background:rgba(255,255,255,.15);padding:1px 4px;border-radius:3px">WEB_APP_URL</code> at line ~50 of this file.<br>
+  <span style="color:#a5b4fc">See instructions below ↓</span>
+  <button onclick="this.parentElement.style.display='none'" style="position:absolute;top:8px;right:10px;background:none;border:none;color:#fff;cursor:pointer;font-size:14px">✕</button>`;
+}
+
+
+// ═══════════════════════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════════════════════
+function switchTab(tab) {
+  document.getElementById('content-sales').classList.toggle('active', tab==='sales');
+  document.getElementById('content-kpis').classList.toggle('active', tab==='kpis');
+  document.getElementById('tab-sales').classList.toggle('active', tab==='sales');
+  document.getElementById('tab-kpis').classList.toggle('active', tab==='kpis');
+
+  // Sales filterbar only on sales tab
+  document.getElementById('filterbar-sales').style.display = tab==='sales' ? 'flex' : 'none';
+
+  // All KPI sub-view filterbars: hide them all when leaving the KPIs tab
+  const kpiBars = ['filterbar-kpis','filterbar-roi','filterbar-excess','filterbar-age'];
+  if (tab !== 'kpis') {
+    kpiBars.forEach(id => { const el=document.getElementById(id); if(el) el.style.display='none'; });
+  } else {
+    // On KPIs tab — show only the active sub-view's filterbar
+    const v = document.getElementById('kv-roi').className==='active' ? 'roi'
+            : document.getElementById('kv-excess').className==='active' ? 'excess'
+            : document.getElementById('kv-age').className==='active' ? 'age'
+            : 'fcst';
+    document.getElementById('filterbar-kpis').style.display   = v==='fcst'   ? 'flex' : 'none';
+    document.getElementById('filterbar-roi').style.display    = v==='roi'    ? 'flex' : 'none';
+    document.getElementById('filterbar-excess').style.display = v==='excess' ? 'flex' : 'none';
+    document.getElementById('filterbar-age').style.display    = v==='age'    ? 'flex' : 'none';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  MULTI-SELECT HELPERS
+// ═══════════════════════════════════════════════════════
+function toggleMS(id) {
+  const dd = document.getElementById(id);
+  // Close all others first
+  document.querySelectorAll('.ms-dropdown').forEach(d => { if(d.id !== id) d.style.display='none'; });
+  dd.style.display = dd.style.display==='none' ? 'block' : 'none';
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.ms-wrap')) {
+    document.querySelectorAll('.ms-dropdown').forEach(d => d.style.display='none');
+  }
+});
+function selectAllMS(id) {
+  document.querySelectorAll(`#${id} input[type=checkbox]`).forEach(cb => cb.checked=true);
+  updateMSBtn(id); applyCurrentFilters(id);
+}
+function clearAllMS(id) {
+  document.querySelectorAll(`#${id} input[type=checkbox]`).forEach(cb => cb.checked=false);
+  updateMSBtn(id); applyCurrentFilters(id);
+}
+function updateMSBtn(id) {
+  const cbs = [...document.querySelectorAll(`#${id} input[type=checkbox]`)];
+  const checked = cbs.filter(c=>c.checked);
+  const btn = document.querySelector(`#${id}`).previousElementSibling;
+  const label = id==='ms-month'?'Month':id==='ms-mkt'?'Marketplace':id==='ms-cat'?'Category':id==='ms-fmonth'?'Month':id==='ms-asin'?'ASIN':id==='ms-roi-month'?'Month':id==='ms-roi-ch'?'Channel':id==='ms-fmkt'?'Marketplace':'Marketplace';
+  btn.innerHTML = checked.length===0||checked.length===cbs.length
+    ? `All ${label}s <span>▾</span>`
+    : `${checked.length} ${label}${checked.length>1?'s':''} <span>▾</span>`;
+}
+function getChecked(id) {
+  const cbs = [...document.querySelectorAll(`#${id} input[type=checkbox]`)];
+  const checked = cbs.filter(c=>c.checked).map(c=>c.value);
+  return checked.length===0||checked.length===cbs.length ? 'all' : checked;
+}
+function applyCurrentFilters(id) {
+  if(['ms-month','ms-mkt','ms-cat'].includes(id)) applyFilters();
+  else applyFcstFilters();
+}
+function buildMS(containerId, values, onchange) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = values.map(v=>`
+    <label>
+      <input type="checkbox" value="${v}" checked onchange="${onchange}">
+      ${v}
+    </label>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  OVERRIDE populateFilters FOR MULTI-SELECT
+// ═══════════════════════════════════════════════════════
+const _origPopulate = populateFilters;
+populateFilters = function() {
+  const months = [...new Set(ROWS.map(r=>r.month))].filter(m=>m&&m>=1&&m<=12).sort((a,b)=>a-b);
+  const mkts   = [...new Set(ROWS.map(r=>r.marketplace))].filter(Boolean).sort();
+  const cats   = [...new Set(ROWS.map(r=>r.category))].filter(c=>c&&c!=='Other'&&c!=='#N/A').sort();
+  const MN2    = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  buildMS('ms-month-opts', months.map(m=>MN2[m]||'M'+m), "updateMSBtn('ms-month');cascadeFilters('ms-month')");
+  buildMS('ms-mkt-opts',   mkts,  "updateMSBtn('ms-mkt');cascadeFilters('ms-mkt')");
+  buildMS('ms-cat-opts',   cats,  "updateMSBtn('ms-cat');cascadeFilters('ms-cat')");
+  // store month->number map
+  window._monthMap = {};
+  months.forEach(m => window._monthMap[MN2[m]||'M'+m] = m);
+  // store month->number map
+  window._monthMap = {};
+  months.forEach(m => window._monthMap[MN2[m]||'M'+m] = m);
+};
+
+// ═══════════════════════════════════════════════════════
+//  OVERRIDE getFiltered FOR MULTI-SELECT
+// ═══════════════════════════════════════════════════════
+const _origGetFiltered = getFiltered;
+getFiltered = function() {
+  const MN2 = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const fm  = getChecked('ms-month');
+  const fmk = getChecked('ms-mkt');
+  const fc  = getChecked('ms-cat');
+  return ROWS.filter(r => {
+    const mLabel = MN2[r.month]||'M'+r.month;
+    const monthOk  = fm==='all'  || fm.includes(mLabel);
+    const mktOk    = fmk==='all' || fmk.includes(r.marketplace);
+    const catOk    = fc==='all'  || fc.includes(r.category);
+    return monthOk && mktOk && catOk;
+  });
+};
+
+// ═══════════════════════════════════════════════════════
+//  OVERRIDE resetFilters
+// ═══════════════════════════════════════════════════════
+const _origReset = resetFilters;
+resetFilters = function() {
+  selectAllMS('ms-month');
+  selectAllMS('ms-mkt');
+  selectAllMS('ms-cat');
+  METRIC='gmv';
+  document.getElementById('m-gmv').className='active';
+  document.getElementById('m-units').className='';
+  applyFilters();
+};
+
+// ═══════════════════════════════════════════════════════
+//  FORECAST DATA
+// ═══════════════════════════════════════════════════════
+let FCST_ROWS = [];
+const EXCLUDE_CHANNELS = ['chewy','flip'];
+const MN_FULL = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function normalizeChannel(ch) {
+  if (!ch) return '';
+  const c = String(ch).trim().toLowerCase();
+  if (c === 'tiktok') return 'TikTok';
+  return String(ch).trim();
+}
+
+async function loadFcstData() {
+  if (!FCST_APP_URL) { renderFcstTab([]); return; }
+  try {
+    const res = await fetch(FCST_APP_URL + '?t=' + Date.now(), {cache:'no-store'});
+    if (!res.ok) throw new Error('Forecast Apps Script returned ' + res.status);
+    const json = await res.json();
+    let rows = json.headers && json.rows
+      ? json.rows.map(r => { const o={}; json.headers.forEach((h,i)=>o[h]=r[i]); return o; })
+      : json;
+
+    FCST_ROWS = rows
+      .filter(r => {
+        const ch = normalizeChannel(r['Channel'] || r['marketplace'] || r['channel'] || '');
+        if (EXCLUDE_CHANNELS.includes(ch.toLowerCase())) return false;
+        const fcst = parseFloat(r['Fcst Qty Org']) || 0;
+        const lag  = parseFloat(r['Lag']) || 0;
+        const yr   = parseInt(r['year']) || 0;
+        const mo   = parseInt(r['month']) || 0;
+        return lag === 3;
+      })
+      .map(r => ({
+        channel:    normalizeChannel(r['Channel'] || r['marketplace'] || ''),
+        asin:       String(r['Child ASIN'] || r['ASIN'] || r['asin'] || ''),
+        name:       String(r['Product Name'] || ''),
+        year:       parseInt(r['year']) || 0,
+        month:      parseInt(r['month']) || 0,
+        fcstOrg:    parseFloat(r['Fcst Qty Org']) || 0,
+        fcstQty:    parseFloat(r['Fcst Qty']) || 0,
+        unitsSold:  parseFloat(r['Units Sold'] !== undefined ? r['Units Sold'] : 0) || 0,
+        actualQty:  parseFloat(r['Actual Qty'] !== undefined ? r['Actual Qty'] : 0) || 0,
+        absError:   parseFloat(r['Abs Error']) || 0,
+        accuracy:   parseFloat(r['Fcst Accuracy (DA)']) || 0,
+        invStart:   parseFloat(r['Inv at Start of Month']) || 0,
+      }));
+
+    populateFcstFilters();
+    applyFcstFilters();
+  } catch(e) {
+    console.error('Forecast load error:', e);
+    document.getElementById('fk-fcst').textContent = 'Error';
+    setStatus('⚠ Forecast: ' + e.message, 'error');
+  }
+}
+
+function populateFcstFilters() {
+  const months   = [...new Set(FCST_ROWS.map(r=>`${r.year}-${String(r.month).padStart(2,'0')}`))].sort();
+  const channels = [...new Set(FCST_ROWS.map(r=>r.channel))].filter(Boolean).sort();
+  const MN_MAP   = {};
+  months.forEach(m => { const [y,mo] = m.split('-'); MN_MAP[`${MN_FULL[parseInt(mo)]} ${y}`] = m; });
+  window._fcstMonthMap = MN_MAP;
+  buildMS('ms-fmonth-opts', Object.keys(MN_MAP), "updateMSBtn('ms-fmonth');applyFcstFilters()");
+  buildMS('ms-fmkt-opts',   channels, "updateMSBtn('ms-fmkt');applyFcstFilters()");
+}
+
+function getFcstFiltered() {
+  const fm  = getChecked('ms-fmonth');
+  const fmk = getChecked('ms-fmkt');
+  return FCST_ROWS.filter(r => {
+    const mKey = `${r.year}-${String(r.month).padStart(2,'0')}`;
+    const mLabel = Object.keys(window._fcstMonthMap||{}).find(k=>(window._fcstMonthMap||{})[k]===mKey);
+    const monthOk = fm==='all' || (mLabel && fm.includes(mLabel));
+    const mktOk   = fmk==='all' || fmk.includes(r.channel);
+    return monthOk && mktOk;
+  });
+}
+
+function resetFcstFilters() {
+  selectAllMS('ms-fmonth');
+  selectAllMS('ms-fmkt');
+}
+
+// ── SAFE FLOAT ──
+const sf = v => { try { const f=parseFloat(v); return isNaN(f)?0:f; } catch{ return 0; } };
+
+// ── ACCURACY FORMULA: max(1 - SUM(Abs Error) / Total Actual, 0) ──
+// Correct aggregate method: sums ASIN-level abs errors so over/under don't cancel out
+function wtdAccuracy(rows) {
+  const totalActual   = rows.reduce((s,r) => s + r.actualQty, 0);
+  const totalAbsError = rows.reduce((s,r) => s + r.absError,  0);
+  if (totalActual <= 0) return 0;
+  return Math.max(1 - totalAbsError / totalActual, 0) * 100;
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER FORECAST TAB
+// ═══════════════════════════════════════════════════════
+function applyFcstFilters() {
+  const rows = getFcstFiltered();
+  if (!rows.length) return;
+  renderFcstTab(rows);
+}
+
+function renderFcstTab(rows) {
+  const totalFcst   = rows.reduce((s,r)=>s+r.fcstOrg, 0);
+  const totalActual = rows.reduce((s,r)=>s+r.actualQty, 0);
+  const totalUnits  = rows.reduce((s,r)=>s+r.unitsSold, 0);
+  const achievement = totalFcst > 0 ? totalActual/totalFcst*100 : 0;
+  const accuracy    = wtdAccuracy(rows);
+
+  const totalAbsErr = rows.reduce((s,r)=>s+r.absError, 0);
+  document.getElementById('fk-fcst').textContent   = fmtN(Math.round(totalFcst));
+  document.getElementById('fk-units').textContent  = fmtN(Math.round(totalUnits));
+  document.getElementById('fk-actual').textContent = fmtN(Math.round(totalActual));
+  document.getElementById('fk-ach').textContent    = fmtP(achievement);
+  document.getElementById('fk-acc').textContent    = fmtP(accuracy);
+  document.getElementById('fk-abserr').textContent = fmtN(Math.round(totalAbsErr));
+
+  // Dynamic date-range label (min → max month present in the data)
+  let minK=null, maxK=null;
+  rows.forEach(r=>{ const k=r.year*100+r.month; if(minK===null||k<minK)minK=k; if(maxK===null||k>maxK)maxK=k; });
+  if(minK!==null){
+    const lbl = MN[(minK%100)]+' '+Math.floor(minK/100)+' – '+MN[(maxK%100)]+' '+Math.floor(maxK/100);
+    document.querySelectorAll('#fcst-kpi-grid .k-sub').forEach(el=>el.textContent=lbl);
+  }
+
+  buildFcstTracker(rows);
+  buildFcstTrend(rows);
+  buildFcstMktBar(rows);
+  buildFcstAccMktBar(rows);
+  buildFcstMktTable(rows);
+  buildFcstAsinTable(rows);
+  buildFcstMonthly(rows);
+}
+
+// ── ACCURACY / ACHIEVEMENT TRACKER (latest month vs target) ──
+let FCST_TARGETS = { achievement: 80, accuracy: 65 }; // defaults; overridden by targets feed if present
+function buildFcstTracker(rows) {
+  // Latest month present in the data
+  let maxK=null;
+  rows.forEach(r=>{ const k=r.year*100+r.month; if(maxK===null||k>maxK)maxK=k; });
+  if(maxK===null){ document.getElementById('fcst-tracker').innerHTML=''; return; }
+  const yr=Math.floor(maxK/100), mo=maxK%100;
+  const latest = rows.filter(r=>r.year===yr && r.month===mo);
+  const f=latest.reduce((s,r)=>s+r.fcstOrg,0), a=latest.reduce((s,r)=>s+r.actualQty,0);
+  const ach = f>0 ? a/f*100 : 0;
+  const acc = wtdAccuracy(latest);
+
+  const bar = (label, val, target) => {
+    // Single fixed 0–100% scale so the fill and the target marker align correctly.
+    const fillW = Math.max(0, Math.min(val, 100));      // bar fill = actual % on 0–100 scale
+    const targetX = Math.max(0, Math.min(target, 100)); // black line at the target %
+    const hit = val>=target;
+    const near = val>=target*0.9;
+    const color = hit ? '#10b981' : near ? '#f59e0b' : '#ef4444';
+    const gap = (val-target);
+    const gapTxt = hit ? ('+'+gap.toFixed(1)+' pts above goal') : (gap.toFixed(1)+' pts to goal');
+    return `
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+          <span style="font-weight:600">${label}</span>
+          <span style="color:#64748b">${val.toFixed(1)}% <span style="color:#94a3b8">/ ${target}% target</span></span>
+        </div>
+        <div style="position:relative;height:14px;background:#eef2f7;border-radius:7px;overflow:hidden">
+          <div style="position:absolute;left:0;top:0;height:100%;width:${fillW}%;background:${color};border-radius:7px;transition:width .4s"></div>
+          <div style="position:absolute;left:${targetX}%;top:-2px;height:18px;width:2px;background:#1f2937"></div>
+        </div>
+        <div style="font-size:10px;color:${hit?'#10b981':'#94a3b8'};margin-top:3px">${gapTxt}</div>
+      </div>`;
+  };
+
+  const monthLbl = MN[mo]+' '+yr;
+  document.getElementById('fcst-tracker').innerHTML =
+    `<div class="card-title"><span class="icon">🎯</span>Tracker — ${monthLbl} vs Target</div>`
+    + bar('Achievement', ach, FCST_TARGETS.achievement)
+    + bar('Accuracy', acc, FCST_TARGETS.accuracy);
+}
+
+// ── OMNI TREND ──
+function buildFcstTrend(rows) {
+  const byMon = {};
+  rows.forEach(r => {
+    const k = `${r.year}-${String(r.month).padStart(2,'0')}`;
+    if (!byMon[k]) byMon[k] = [];
+    byMon[k].push(r);
+  });
+  const keys = Object.keys(byMon).sort();
+  const labels = keys.map(k => { const [y,m]=k.split('-'); return MN_FULL[parseInt(m)]+' '+y.slice(2); });
+  const achData = keys.map(k => {
+    const rs = byMon[k];
+    const f = rs.reduce((s,r)=>s+r.fcstOrg,0);
+    const a = rs.reduce((s,r)=>s+r.actualQty,0);
+    return f>0 ? a/f*100 : 0;
+  });
+  const accData = keys.map(k => wtdAccuracy(byMon[k]));
+
+  const ctx = document.getElementById('ch-fcst-trend').getContext('2d');
+  if (charts['fcst-trend']) charts['fcst-trend'].destroy();
+  charts['fcst-trend'] = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets:[
+      {label:'Achievement %', data:achData, borderColor:'#4f46e5', backgroundColor:'rgba(79,70,229,.1)', fill:true, tension:.4, pointRadius:3, pointBackgroundColor:'#4f46e5', borderWidth:2},
+      {label:'Accuracy %',    data:accData, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.1)', fill:true, tension:.4, pointRadius:3, pointBackgroundColor:'#10b981', borderWidth:2},
+      {label:'Abs Error (units, /100)', data:keys.map(k=>{ const rs=byMon[k]; return Math.round(rs.reduce((s,r)=>s+r.absError,0)/100); }), borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.1)', fill:false, tension:.4, pointRadius:3, pointBackgroundColor:'#f59e0b', borderWidth:2, yAxisID:'y2'}
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{boxWidth:8,font:{size:10}},position:'bottom'}, tooltip:{callbacks:{label:c=>c.datasetIndex<2?c.dataset.label+': '+c.raw.toFixed(1)+'%':c.dataset.label.replace('/100','')+': '+fmtN(c.raw*100)}}},
+      scales:{
+        y:{ticks:{callback:v=>v.toFixed(0)+'%',font:{size:10}}, grid:{color:'#f0f4f8'}, min:0},
+        y2:{position:'right', ticks:{callback:v=>fmtN(v*100),font:{size:9}}, grid:{display:false}},
+        x:{ticks:{font:{size:9},maxRotation:45}}
+      }
+    }
+  });
+}
+
+// ── ACHIEVEMENT BY MARKETPLACE ──
+function buildFcstMktBar(rows) {
+  const byMkt = {};
+  rows.forEach(r => { if(!byMkt[r.channel]) byMkt[r.channel]=[]; byMkt[r.channel].push(r); });
+  const sorted = Object.entries(byMkt).sort((a,b)=>{
+    const fa=a[1].reduce((s,r)=>s+r.fcstOrg,0), aa=a[1].reduce((s,r)=>s+r.actualQty,0);
+    const fb=b[1].reduce((s,r)=>s+r.fcstOrg,0), ab=b[1].reduce((s,r)=>s+r.actualQty,0);
+    return (fb>0?ab/fb:0)-(fa>0?aa/fa:0);
+  });
+  const labels = sorted.map(([n])=>n);
+  const data   = sorted.map(([,rs])=>{ const f=rs.reduce((s,r)=>s+r.fcstOrg,0),a=rs.reduce((s,r)=>s+r.actualQty,0); return f>0?a/f*100:0; });
+
+  const ctx = document.getElementById('ch-fcst-mkt').getContext('2d');
+  if (charts['fcst-mkt']) charts['fcst-mkt'].destroy();
+  charts['fcst-mkt'] = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{label:'Achievement %', data, backgroundColor:MKT_COLORS, borderRadius:5}]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw.toFixed(1)+'%'}}},
+      scales:{y:{ticks:{callback:v=>v+'%',font:{size:10}}, grid:{color:'#f0f4f8'}, min:0}, x:{ticks:{font:{size:10}}}}
+    }
+  });
+}
+
+// ── ACCURACY BY MARKETPLACE ──
+function buildFcstAccMktBar(rows) {
+  const byMkt = {};
+  rows.forEach(r => { if(!byMkt[r.channel]) byMkt[r.channel]=[]; byMkt[r.channel].push(r); });
+  const sorted = Object.entries(byMkt).sort((a,b)=>wtdAccuracy(b[1])-wtdAccuracy(a[1]));
+  const labels = sorted.map(([n])=>n);
+  const data   = sorted.map(([,rs])=>wtdAccuracy(rs));
+
+  const ctx = document.getElementById('ch-fcst-acc-mkt').getContext('2d');
+  if (charts['fcst-acc-mkt']) charts['fcst-acc-mkt'].destroy();
+  charts['fcst-acc-mkt'] = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{label:'Accuracy %', data, backgroundColor:CAT_COLORS, borderRadius:5}]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw.toFixed(1)+'%'}}},
+      scales:{y:{ticks:{callback:v=>v+'%',font:{size:10}}, grid:{color:'#f0f4f8'}, min:0}, x:{ticks:{font:{size:10}}}}
+    }
+  });
+}
+
+// ── MARKETPLACE SUMMARY TABLE ──
+function buildFcstMktTable(rows) {
+  const byMkt = {};
+  rows.forEach(r => { if(!byMkt[r.channel]) byMkt[r.channel]=[]; byMkt[r.channel].push(r); });
+  const sorted = Object.entries(byMkt).sort((a,b)=>b[1].reduce((s,r)=>s+r.fcstOrg,0)-a[1].reduce((s,r)=>s+r.fcstOrg,0));
+  document.getElementById('fcst-mkt-tbody').innerHTML = sorted.map(([ch,rs],i) => {
+    const fcst   = rs.reduce((s,r)=>s+r.fcstOrg,0);
+    const actual = rs.reduce((s,r)=>s+r.actualQty,0);
+    const units  = rs.reduce((s,r)=>s+r.unitsSold,0);
+    const absErr = rs.reduce((s,r)=>s+r.absError,0);  // sum of ASIN-level abs errors
+    const ach    = fcst>0?actual/fcst*100:0;
+    const acc    = wtdAccuracy(rs);
+    const achCol = ach>=80?'#16a34a':ach>=60?'#d97706':'#dc2626';
+    const accCol = acc>=60?'#16a34a':acc>=40?'#d97706':'#dc2626';
+    return `<tr>
+      <td style="font-weight:700"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${MKT_COLORS[i]};margin-right:6px"></span>${ch}</td>
+      <td>${fmtN(Math.round(fcst))}</td>
+      <td>${fmtN(Math.round(actual))}</td>
+      <td>${fmtN(Math.round(units))}</td>
+      <td style="font-weight:800;color:${achCol}">${fmtP(ach)}</td>
+      <td style="font-weight:800;color:${accCol}">${fmtP(acc)}</td>
+      <td>${fmtN(Math.round(absErr))}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── TOP 20 ASINs ──
+function buildFcstAsinTable(rows) {
+  const byAsin = {};
+  rows.forEach(r => {
+    if(!byAsin[r.asin]) byAsin[r.asin]={asin:r.asin,name:r.name,fcst:0,actual:0,units:0,absErr:0,rows:[]};
+    byAsin[r.asin].fcst   += r.fcstOrg;
+    byAsin[r.asin].actual += r.actualQty;
+    byAsin[r.asin].units  += r.unitsSold;
+    byAsin[r.asin].absErr += r.absError;  // sum ASIN-level abs error across months/channels
+    byAsin[r.asin].rows.push(r);
+  });
+  const list = Object.values(byAsin)
+    .filter(a => a.fcst >= 20)
+    .map(a => ({...a, ach:a.fcst>0?a.actual/a.fcst*100:0, acc:wtdAccuracy(a.rows), absErr:a.absErr}))
+    .sort((a,b) => b.ach - a.ach)
+    .slice(0,20);
+
+  document.getElementById('fcst-asin-tbody').innerHTML = list.map((a,i) => {
+    const achCol = a.ach>=80?'#16a34a':a.ach>=60?'#d97706':'#dc2626';
+    const accCol = a.acc>=60?'#16a34a':a.acc>=40?'#d97706':'#dc2626';
+    return `<tr>
+      <td style="color:var(--muted);font-weight:700">${i+1}</td>
+      <td><code style="font-size:9px;background:#f0f4f8;padding:2px 5px;border-radius:4px">${a.asin}</code></td>
+      <td style="font-size:10px;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)">${a.name}</td>
+      <td>${fmtN(Math.round(a.fcst))}</td>
+      <td>${fmtN(Math.round(a.actual))}</td>
+      <td>${fmtN(Math.round(a.units))}</td>
+      <td style="font-weight:800;color:${achCol}">${fmtP(a.ach)}</td>
+      <td style="font-weight:800;color:${accCol}">${fmtP(a.acc)}</td>
+      <td>${fmtN(Math.round(a.absErr))}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── MONTHLY FCST vs ACTUAL ──
+function buildFcstMonthly(rows) {
+  const byMon = {};
+  rows.forEach(r => {
+    const k = `${r.year}-${String(r.month).padStart(2,'0')}`;
+    if(!byMon[k]) byMon[k]={fcst:0,actual:0,units:0};
+    byMon[k].fcst   += r.fcstOrg;
+    byMon[k].actual += r.actualQty;
+    byMon[k].units  += r.unitsSold;
+  });
+  const keys   = Object.keys(byMon).sort();
+  const labels = keys.map(k => { const [y,m]=k.split('-'); return MN_FULL[parseInt(m)]+' '+y.slice(2); });
+
+  const ctx = document.getElementById('ch-fcst-monthly').getContext('2d');
+  if (charts['fcst-monthly']) charts['fcst-monthly'].destroy();
+  charts['fcst-monthly'] = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[
+      {label:'FCST Qty',    data:keys.map(k=>byMon[k].fcst),   backgroundColor:'rgba(79,70,229,.3)',  borderColor:'#4f46e5', borderWidth:1, borderRadius:4},
+      {label:'Actual Qty',  data:keys.map(k=>byMon[k].actual), backgroundColor:'#10b981', borderRadius:4},
+      {label:'Units Sold',  data:keys.map(k=>byMon[k].units),  backgroundColor:'#f59e0b', borderRadius:4},
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{boxWidth:8,font:{size:10}},position:'bottom'}, tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmtN(Math.round(c.raw))}}},
+      scales:{y:{ticks:{callback:v=>fmtN(v),font:{size:10}}, grid:{color:'#f0f4f8'}}, x:{ticks:{font:{size:9},maxRotation:45}}}
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  LOAD FORECAST DATA ON INIT
+// ═══════════════════════════════════════════════════════
+loadFcstData();
+
+
+// ═══════════════════════════════════════════════════════
+//  ASIN FILTER — cascading logic
+// ═══════════════════════════════════════════════════════
+let _asinMap = {}; // asin -> {title, category, marketplace}
+
+function filterAsinSearch() {
+  const q = document.getElementById('ms-asin-search').value.toLowerCase();
+  document.querySelectorAll('#ms-asin-opts label').forEach(lbl => {
+    lbl.style.display = lbl.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function populateAsinFilter() {
+  if (!ROWS.length) return;
+  // Get currently selected cats and mkts to cascade
+  const selCats = getChecked('ms-cat');
+  const selMkts = getChecked('ms-mkt');
+  const selMons = getChecked('ms-month');
+  const MN2 = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  const filtered = ROWS.filter(r => {
+    const mLabel = MN2[r.month]||'M'+r.month;
+    const monthOk = selMons==='all' || selMons.includes(mLabel);
+    const mktOk   = selMkts==='all' || selMkts.includes(r.marketplace);
+    const catOk   = selCats==='all' || selCats.includes(r.category);
+    return monthOk && mktOk && catOk;
+  });
+
+  // Build ASIN list
+  const asinSet = {};
+  filtered.forEach(r => {
+    if (r.asin && !asinSet[r.asin]) {
+      asinSet[r.asin] = r.title ? r.asin + ' — ' + r.title.substring(0,40) : r.asin;
+    }
+  });
+
+  const sorted = Object.entries(asinSet).sort((a,b)=>a[0].localeCompare(b[0]));
+  const container = document.getElementById('ms-asin-opts');
+  const prevChecked = new Set([...document.querySelectorAll('#ms-asin-opts input:checked')].map(c=>c.value));
+
+  container.innerHTML = sorted.map(([asin, label]) => `
+    <label>
+      <input type="checkbox" value="${asin}" ${prevChecked.size===0||prevChecked.has(asin)?'checked':''} 
+        onchange="updateMSBtn('ms-asin');applyFilters()">
+      <span style="font-size:10px">${label}</span>
+    </label>`).join('');
+  updateMSBtn('ms-asin');
+}
+
+// Cascade: when month/mkt/cat changes, update ASIN options
+function cascadeFilters(changedId) {
+  // Always repopulate ASIN filter when any other filter changes
+  if (changedId !== 'ms-asin') populateAsinFilter();
+  // If ASIN changed, also cascade other filters
+  if (changedId === 'ms-asin') {
+    const selAsins = getChecked('ms-asin');
+    if (selAsins !== 'all') {
+      // Update month, mkt, cat options to reflect selected ASINs
+      const asinRows = ROWS.filter(r => selAsins.includes(r.asin));
+      const validMkts = new Set(asinRows.map(r=>r.marketplace));
+      const validCats = new Set(asinRows.map(r=>r.category));
+      // Uncheck items not in valid set
+      document.querySelectorAll('#ms-mkt-opts input').forEach(cb => {
+        if (!validMkts.has(cb.value)) cb.checked = false;
+      });
+      document.querySelectorAll('#ms-cat-opts input').forEach(cb => {
+        if (!validCats.has(cb.value)) cb.checked = false;
+      });
+      updateMSBtn('ms-mkt');
+      updateMSBtn('ms-cat');
+    }
+  }
+  applyFilters();
+}
+
+// ── OVERRIDE populateFilters to include ASIN ──
+const _origPopulateSales = populateFilters;
+populateFilters = function() {
+  _origPopulateSales();
+  populateAsinFilter();
+};
+
+// ── OVERRIDE getFiltered to include ASIN filter ──
+const _origGetFilteredSales = getFiltered;
+getFiltered = function() {
+  const base = _origGetFilteredSales();
+  const selAsins = getChecked('ms-asin');
+  if (selAsins === 'all') return base;
+  return base.filter(r => selAsins.includes(r.asin));
+};
+
+// ── OVERRIDE resetFilters to include ASIN ──
+const _origResetSales = resetFilters;
+resetFilters = function() {
+  _origResetSales();
+  selectAllMS('ms-asin');
+};
+
+// Update buildMS calls to use cascadeFilters
+function buildMSWithCascade(containerId, values, msId) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = values.map(v=>`
+    <label>
+      <input type="checkbox" value="${v}" checked 
+        onchange="updateMSBtn('${msId}');cascadeFilters('${msId}')">
+      ${v}
+    </label>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  HISTORICAL YoY DATA
+// ═══════════════════════════════════════════════════════
+let HIST_DATA = {}; // {year: {month: {marketplace: gmv}}}
+
+// ── OMNI BUDGET (live from Budgets sheet) ──
+let OMNI_BUDGET = {};     // {month: budget} — Omni section
+let REALIZED_OMNI = {};   // {month: budget} — Realized/Adjusted Omni Goals
+let WALMART_BUDGET = {};  // {month: budget} — Walmart section
+let TIKTOK_BUDGET = {};   // {month: budget} — TikTok section
+// ═══════════════════════════════════════════════════════
+//  WEEKLY PACE TRACKER (Excess cohorts + Liquidation)
+// ═══════════════════════════════════════════════════════
+let TRACKER_DATA = [];   // [{cohort, excessUnits, reqMo, reqWk, sold30d, pctTarget, escalate}]
+async function loadTrackerData() {
+  if (!TRACKER_APP_URL) return;
+  try {
+    const res = await fetch(TRACKER_APP_URL + '?t=' + Date.now(), {cache:'no-store'});
+    if (!res.ok) throw new Error('Tracker Apps Script returned ' + res.status);
+    const json = await res.json();
+    TRACKER_DATA = json.cohorts || [];
+    buildExcessTracker();
+    buildAgeTracker();
+  } catch(e) {
+    console.error('Tracker load error:', e);
+  }
+}
+
+// Shared bar renderer: 30d sold vs monthly required run-rate
+function paceBar(label, sold, reqMo) {
+  const pct = reqMo>0 ? sold/reqMo*100 : 0;
+  const fillW = Math.max(0, Math.min(pct, 100));
+  // 70% checkpoint is the escalation threshold (per the tracker note)
+  const good = pct>=70, near = pct>=50;
+  const color = good ? '#10b981' : near ? '#f59e0b' : '#ef4444';
+  return `
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+        <span style="font-weight:600">${label}</span>
+        <span style="color:#64748b">${fmtN(sold)} / ${fmtN(reqMo)} req <span style="color:#94a3b8">(${pct.toFixed(1)}%)</span></span>
+      </div>
+      <div style="position:relative;height:14px;background:#eef2f7;border-radius:7px;overflow:hidden">
+        <div style="position:absolute;left:0;top:0;height:100%;width:${fillW}%;background:${color};border-radius:7px;transition:width .4s"></div>
+        <div style="position:absolute;left:70%;top:-2px;height:18px;width:2px;background:#1f2937"></div>
+      </div>
+      <div style="font-size:10px;color:${good?'#10b981':'#94a3b8'};margin-top:3px">${good?'On pace':'Below 70% checkpoint'}</div>
+    </div>`;
+}
+
+function findCohort(substr){ return TRACKER_DATA.find(c => c.cohort && c.cohort.toLowerCase().includes(substr)); }
+
+function buildExcessTracker() {
+  const el = document.getElementById('excess-tracker');
+  if (!el || !TRACKER_DATA.length) return;
+  // Tiers (exclude Liquidation Watch); Total = sum of the three tiers + sprint 1
+  const tierA = findCohort('tier a');
+  const tierB = findCohort('tier b');
+  const tierC = findCohort('tier c');
+  const sprint1 = findCohort('sprint 1');
+  const tiers = [sprint1, tierA, tierB, tierC].filter(Boolean);
+  const totSold = tiers.reduce((s,c)=>s+c.sold30d,0);
+  const totReq  = tiers.reduce((s,c)=>s+c.reqMo,0);
+
+  let html = `<div class="card-title"><span class="icon">🎯</span>Weekly Pace Tracker — 30-Day Sold vs Required Run-Rate</div>`;
+  html += paceBar('Total (all tiers)', totSold, totReq);
+  if (sprint1) html += paceBar('Sprint 1 — all 5 live', sprint1.sold30d, sprint1.reqMo);
+  if (tierA) html += paceBar('Tier A — 4/5 channels', tierA.sold30d, tierA.reqMo);
+  if (tierB) html += paceBar('Tier B — 3/5 channels', tierB.sold30d, tierB.reqMo);
+  if (tierC) html += paceBar('Tier C — 0-2/5 channels', tierC.sold30d, tierC.reqMo);
+  html += `<div style="font-size:10px;color:#94a3b8;margin-top:4px">Black line = 70% Day-30 checkpoint.</div>`;
+  el.innerHTML = html;
+}
+
+function buildAgeTracker() {
+  const el = document.getElementById('age-tracker');
+  if (!el || !TRACKER_DATA.length) return;
+  const liq = findCohort('liquidation');
+  if (!liq) { el.innerHTML=''; return; }
+  let html = `<div class="card-title"><span class="icon">🎯</span>Liquidation Pace Tracker — 180+ Aged Units</div>`;
+  html += paceBar('Liquidation Watch (180+ aged)', liq.sold30d, liq.reqMo);
+  html += `<div style="font-size:10px;color:#94a3b8;margin-top:4px">${fmtN(liq.excessUnits)} units flagged · ${fmtN(liq.reqMo)}/mo needed to clear in 6 months. Black line = 70% checkpoint.</div>`;
+  el.innerHTML = html;
+}
+
+async function loadBudgetData() {
+  if (!BUDGET_APP_URL) return;
+  try {
+    const res = await fetch(BUDGET_APP_URL + '?t=' + Date.now(), {cache:'no-store'});
+    if (!res.ok) throw new Error('Budget Apps Script returned ' + res.status);
+    const json = await res.json();
+    const parse = (obj) => {
+      const out = {};
+      Object.keys(obj||{}).forEach(k => {
+        const [yr, mo] = k.split('-').map(Number);
+        if (yr === 2026 && mo>=1 && mo<=12) out[mo] = Number(obj[k]) || 0;
+      });
+      return out;
+    };
+    OMNI_BUDGET    = parse(json.omniBudget);
+    REALIZED_OMNI  = parse(json.realizedOmni);
+    WALMART_BUDGET = parse(json.walmartBudget);
+    TIKTOK_BUDGET  = parse(json.tiktokBudget);
+    // Re-render monthly chart now that budget is available
+    if (typeof applyFilters === 'function') applyFilters();
+  } catch(e) {
+    console.error('Budget load error:', e);
+  }
+}
+const MN_FULL2 = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// Column mapping for Historical GMV sheet
+// Col 19 = Kohls Total (from Oct 2024), Col 11 = Kohls 3P only (pre-Oct 2024)
+// Use col 19 if available, else col 11
+const HIST_COL_MAP = {
+  'Target':      8,
+  "Macy's":     22,
+  'Staples':    25,
+  "Lowe's":     28,
+  'TikTok':     31,
+  'Wayfair':    34,
+  'Home Depot': 37,
+  'Walmart':    42,
+};
+
+async function loadHistData() {
+  if (!HIST_APP_URL) {
+    renderYoY();
+    return;
+  }
+  try {
+    const res = await fetch(HIST_APP_URL + '?t=' + Date.now(), {cache:'no-store'});
+    if (!res.ok) throw new Error('Historical Apps Script returned ' + res.status);
+    const json = await res.json();
+    const rows = json.rows || json;
+
+    // Process rows into HIST_DATA[year][month][marketplace]
+    rows.forEach(r => {
+      const yr = parseInt(r.year) || 0;
+      const mo = parseInt(r.month) || 0;
+      if (!yr || !mo) return;
+      if (!HIST_DATA[yr]) HIST_DATA[yr] = {};
+      if (!HIST_DATA[yr][mo]) HIST_DATA[yr][mo] = {};
+      Object.keys(HIST_COL_MAP).forEach(mkt => {
+        HIST_DATA[yr][mo][mkt] = (HIST_DATA[yr][mo][mkt] || 0) + (parseFloat(r[mkt]) || 0);
+      });
+      // Kohls: use Total if available, else 3P only
+      const kohlsTotal = parseFloat(r["kohls_total"]) || 0;
+      const kohls3p    = parseFloat(r["kohls_3p"])    || 0;
+      HIST_DATA[yr][mo]["Kohl's"] = (HIST_DATA[yr][mo]["Kohl's"] || 0) + (kohlsTotal > 0 ? kohlsTotal : kohls3p);
+    });
+
+    renderYoY();
+  } catch(e) {
+    console.error('Historical load error:', e);
+    document.getElementById('yoy-section').innerHTML += `<div style="font-size:11px;color:#ef4444;padding:8px">Could not load historical data: ${e.message}</div>`;
+  }
+}
+
+function getHistMonthlyTotal(year) {
+  return getHistMonthlyTotalFiltered(year, 'all');
+}
+
+function getHistMonthlyTotalFiltered(year, selMkts) {
+  const result = {};
+  if (!HIST_DATA[year]) return result;
+
+  // Normalize marketplace names between historical and master data
+  const normMkt = name => name.toLowerCase().replace(/['\s]/g,'').replace('lowes',"lowe's");
+  const selNorm = selMkts === 'all' ? 'all' : selMkts.map(m => normMkt(m));
+
+  for (let mo = 1; mo <= 12; mo++) {
+    const byMkt = HIST_DATA[year][mo] || {};
+    if (selMkts === 'all') {
+      result[mo] = Object.values(byMkt).reduce((s,v)=>s+v, 0);
+    } else {
+      // Map master data marketplace names to historical names
+      const MKTMAP = {
+        'target':     'Target',
+        "macy's":     "Macy's",
+        "macys":      "Macy's",
+        'staples':    'Staples',
+        'lowes':      "Lowe's",
+        "lowe's":     "Lowe's",
+        'tiktok':     'TikTok',
+        'wayfair':    'Wayfair',
+        'home depot': 'Home Depot',
+        "kohl's 3p":  "Kohl's",
+        "kohl's 1p":  "Kohl's",
+        "kohls 3p":   "Kohl's",
+        "kohls 1p":   "Kohl's",
+      };
+      result[mo] = selMkts.reduce((s, mkt) => {
+        const histKey = MKTMAP[mkt.toLowerCase()] || mkt;
+        return s + (byMkt[histKey] || 0);
+      }, 0);
+    }
+  }
+  return result;
+}
+
+function get2026MonthlyFromRows() {
+  // Use getFiltered() so all filters apply to 2026 line
+  const filtered = getFiltered();
+  const byM = groupBy(filtered, 'month');
+  const result = {};
+  Object.keys(byM).forEach(m => {
+    result[parseInt(m)] = sumSales(byM[m]);
+  });
+  return result;
+}
+
+function renderYoY() {
+  // Hide YoY section if ASIN or Category filters are active
+  const selAsins = getChecked('ms-asin');
+  const selCats  = getChecked('ms-cat');
+  const yoySection = document.getElementById('yoy-section');
+  const yoyGrowth  = yoySection?.nextElementSibling;
+
+  const asinActive = selAsins !== 'all';
+  const catActive  = selCats  !== 'all';
+
+  if (asinActive || catActive) {
+    if (yoySection) yoySection.style.display = 'none';
+    if (yoyGrowth)  yoyGrowth.style.display  = 'none';
+    return;
+  } else {
+    if (yoySection) yoySection.style.display = '';
+    if (yoyGrowth)  yoyGrowth.style.display  = '';
+  }
+
+  // Filter historical data by selected marketplaces
+  const selMkts = getChecked('ms-mkt');
+
+  const data2024 = getHistMonthlyTotalFiltered(2024, selMkts);
+  const data2025 = getHistMonthlyTotalFiltered(2025, selMkts);
+  const data2026 = get2026MonthlyFromRows();
+
+  const total2024 = Object.values(data2024).reduce((s,v)=>s+v, 0);
+  const total2025 = Object.values(data2025).reduce((s,v)=>s+v, 0);
+  const total2026 = Object.values(data2026).reduce((s,v)=>s+v, 0);
+
+  // YoY KPI cards
+  const growth2425 = total2024>0 ? (total2025-total2024)/total2024*100 : 0;
+  const growth2526 = total2025>0 ? (total2026-total2025)/total2025*100 : 0;
+  document.getElementById('yoy-kpis').innerHTML = `
+    <div class="kpi c1" style="min-width:160px;flex:1">
+      <div class="k-label">2024 Total GMV</div>
+      <div class="k-value">${fmt$(total2024)}</div>
+      <div class="k-sub">Full Year</div>
+    </div>
+    <div class="kpi c2" style="min-width:160px;flex:1">
+      <div class="k-label">2025 Total GMV</div>
+      <div class="k-value">${fmt$(total2025)}</div>
+      <div class="k-sub ${growth2425>=0?'':''}">
+        <span style="color:${growth2425>=0?'#10b981':'#ef4444'};font-weight:700">${growth2425>=0?'↑':'↓'} ${Math.abs(growth2425).toFixed(1)}% vs 2024</span>
+      </div>
+    </div>
+    <div class="kpi c3" style="min-width:160px;flex:1">
+      <div class="k-label">2026 YTD GMV</div>
+      <div class="k-value">${fmt$(total2026)}</div>
+      <div class="k-sub">
+        <span style="color:${growth2526>=0?'#10b981':'#ef4444'};font-weight:700">${growth2526>=0?'↑':'↓'} ${Math.abs(growth2526).toFixed(1)}% vs 2025 YTD</span>
+      </div>
+    </div>`;
+
+  // Build YoY line chart
+  const allMonths = [...new Set([
+    ...Object.keys(data2024).map(Number),
+    ...Object.keys(data2025).map(Number),
+    ...Object.keys(data2026).map(Number)
+  ])].filter(m=>m>=1&&m<=12).sort((a,b)=>a-b);
+
+  const labels = allMonths.map(m => MN_FULL2[m]);
+  const ctx = document.getElementById('ch-yoy').getContext('2d');
+  if (charts['yoy']) charts['yoy'].destroy();
+  charts['yoy'] = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [
+      { label:'2024', data:allMonths.map(m=>data2024[m]||0), borderColor:'#94a3b8', backgroundColor:'rgba(148,163,184,.1)', tension:.4, pointRadius:3, borderWidth:2, borderDash:[5,3] },
+      { label:'2025', data:allMonths.map(m=>data2025[m]||0), borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.1)', tension:.4, pointRadius:3, borderWidth:2 },
+      { label:'2026', data:allMonths.map(m=>data2026[m]||0), borderColor:'#4f46e5', backgroundColor:'rgba(79,70,229,.15)', tension:.4, pointRadius:4, borderWidth:3, fill:true },
+    ]},
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{labels:{boxWidth:8,font:{size:10}},position:'top'}, tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt$(c.raw)}} },
+      scales:{ y:{ticks:{callback:v=>fmtK(v),font:{size:10}},grid:{color:'#f0f4f8'}}, x:{ticks:{font:{size:10}}} }
+    }
+  });
+
+  // YoY Growth % chart (2024→2025 and 2025→2026)
+  const growth2425Data = allMonths.map(m => data2024[m]>0 ? (data2025[m]||0-data2024[m])/data2024[m]*100 : null);
+  const growth2526Data = allMonths.map(m => data2025[m]>0 ? ((data2026[m]||0)-data2025[m])/data2025[m]*100 : null);
+  const ctx2 = document.getElementById('ch-yoy-growth').getContext('2d');
+  if (charts['yoy-growth']) charts['yoy-growth'].destroy();
+  charts['yoy-growth'] = new Chart(ctx2, {
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'2024→2025 Growth %', data:growth2425Data, backgroundColor:allMonths.map(m=>((data2025[m]||0)-(data2024[m]||0))>=0?'rgba(16,185,129,.7)':'rgba(239,68,68,.7)'), borderRadius:4 },
+      { label:'2025→2026 Growth %', data:growth2526Data, backgroundColor:allMonths.map(m=>((data2026[m]||0)-(data2025[m]||0))>=0?'rgba(79,70,229,.7)':'rgba(249,115,22,.7)'), borderRadius:4 },
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{labels:{boxWidth:8,font:{size:10}},position:'top'}, tooltip:{callbacks:{label:c=>c.dataset.label+': '+(c.raw!==null?c.raw.toFixed(1)+'%':'N/A')}} },
+      scales:{ y:{ticks:{callback:v=>v.toFixed(0)+'%',font:{size:10}},grid:{color:'#f0f4f8'}}, x:{ticks:{font:{size:10}}} }
+    }
+  });
+
+  // Marketplace YoY table
+  const MKTMAP2 = {
+    'target':'Target',"macy's":"Macy's",'macys':"Macy's",'staples':'Staples',
+    'lowes':"Lowe's","lowe's":"Lowe's",'tiktok':'TikTok','wayfair':'Wayfair',
+    'home depot':'Home Depot',"kohl's 3p":"Kohl's","kohl's 1p":"Kohl's"
+  };
+  const selMkts2 = getChecked('ms-mkt');
+  const allHistMkts = [...Object.keys(HIST_COL_MAP), "Kohl's"];
+  const mktList = selMkts2 === 'all' ? allHistMkts :
+    [...new Set(selMkts2.map(m => MKTMAP2[m.toLowerCase()] || m))].filter(m => allHistMkts.includes(m));
+  const total2024byMkt = {}, total2025byMkt = {};
+  mktList.forEach(mkt => {
+    total2024byMkt[mkt] = Object.values(HIST_DATA[2024]||{}).reduce((s,mo)=>s+(mo[mkt]||0),0);
+    total2025byMkt[mkt] = Object.values(HIST_DATA[2025]||{}).reduce((s,mo)=>s+(mo[mkt]||0),0);
+  });
+  document.getElementById('yoy-mkt-tbody').innerHTML = mktList
+    .sort((a,b)=>total2025byMkt[b]-total2025byMkt[a])
+    .map((mkt,i) => {
+      const v24 = total2024byMkt[mkt] || 0;
+      const v25 = total2025byMkt[mkt] || 0;
+      const gr  = v24>0 ? (v25-v24)/v24*100 : null;
+      const col = gr===null?'#6b7280':gr>=0?'#10b981':'#ef4444';
+      return `<tr>
+        <td style="font-weight:700"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${MKT_COLORS[i]};margin-right:6px"></span>${mkt}</td>
+        <td>${v24>0?fmt$(v24):'—'}</td>
+        <td>${v25>0?fmt$(v25):'—'}</td>
+        <td style="font-weight:800;color:${col}">${gr!==null?(gr>=0?'↑ ':'↓ ')+Math.abs(gr).toFixed(1)+'%':'—'}</td>
+      </tr>`;
+    }).join('');
+}
+
+// ── Call loadHistData on init ──
+loadHistData();
+loadBudgetData();
+loadTrackerData();
+
+// ── Override applyFilters to also re-render YoY 2026 line ──
+const _origApplyFilters = applyFilters;
+applyFilters = function() {
+  _origApplyFilters();
+  if (Object.keys(HIST_DATA).length > 0) renderYoY();
+};
+
+
+// ═══════════════════════════════════════════════════════
+//  KPI VIEW TOGGLE (FCST vs ROI)
+// ═══════════════════════════════════════════════════════
+function switchKPIView(view) {
+  document.getElementById('view-fcst').style.display   = view==='fcst'   ? '' : 'none';
+  document.getElementById('view-roi').style.display    = view==='roi'    ? '' : 'none';
+  document.getElementById('view-excess').style.display = view==='excess' ? '' : 'none';
+  document.getElementById('view-age').style.display    = view==='age'    ? '' : 'none';
+  document.getElementById('kv-fcst').className   = view==='fcst'   ? 'active' : '';
+  document.getElementById('kv-roi').className    = view==='roi'    ? 'active' : '';
+  document.getElementById('kv-excess').className = view==='excess' ? 'active' : '';
+  document.getElementById('kv-age').className    = view==='age'    ? 'active' : '';
+  // Hide/show filterbar
+  document.getElementById('filterbar-kpis').style.display   = view==='fcst'   ? 'flex' : 'none';
+  document.getElementById('filterbar-roi').style.display    = view==='roi'    ? 'flex' : 'none';
+  document.getElementById('filterbar-excess').style.display = view==='excess' ? 'flex' : 'none';
+  document.getElementById('filterbar-age').style.display    = view==='age'    ? 'flex' : 'none';
+  if (view==='roi' && Object.keys(ROI_DATA).length > 0) renderROI();
+  if (view==='excess' && EXCESS_RAW.length > 0) renderExcess();
+  if (view==='age' && Object.keys(AGE_DATA).length > 0) renderAge();
+}
+
+// ═══════════════════════════════════════════════════════
+//  ROI DATA & PARSING
+// ═══════════════════════════════════════════════════════
+let ROI_DATA = {};
+const MONTHS = ['Jan 2026','Feb 2026','Mar 2026','Apr 2026'];
+const CHANNEL_COLORS = {
+  'Walmart Omni Online': '#4f46e5',
+  'TKM':                 '#10b981',
+  'TikTok & Flip':       '#ec4899',
+  'Other Omni Online':   '#f59e0b',
+  'Omni Channel Total':  '#6366f1',
+};
+
+async function loadROIData() {
+  if (!ROI_APP_URL) return;
+  try {
+    const res = await fetch(ROI_APP_URL + '?t=' + Date.now(), {cache:'no-store'});
+    if (!res.ok) throw new Error('ROI Apps Script returned ' + res.status);
+    const json = await res.json();
+
+    const roi = json.roi;      // ROI Report sheet rows
+    const anl = json.analysis; // Analysis & Trends sheet rows
+
+    // ── Parse from Analysis & Trends (cleaner structure) ──
+    // Table 2: Monthly ROI Trend (rows 11-13)
+    // Table 3: Monthly Contribution Profit (rows 17-22)
+    // Table 4: Margin Analysis (rows 26-34)
+    // Table 5: Inventory Cost (rows 38-40)
+
+    // Helper to find row by label
+    const findRow = (data, label) => data.find(r => r[1] && String(r[1]).trim().replace(/\s+/g,' ').includes(label.trim()));
+    const getVals = (row, cols=[2,3,4,5]) => cols.map(i => parseFloat(row[i]) || 0);
+
+    // Monthly ROI by channel
+    const roiWmt  = findRow(anl, 'Walmart Omni Online') || [];
+    const roiOmni = findRow(anl, 'Omni Channel (Combined)') || [];
+
+    // Parse ROI Report for per-channel P&L
+    const parseChannel = (data, label) => {
+      const idx = data.findIndex(r => r[1] && String(r[1]).trim().includes(label));
+      if (idx < 0) return null;
+      return {
+        grossRevenue:        getVals(data[idx+1] || []),
+        netRevenue:          getVals(data[idx+2] || []),
+        grossProfit:         getVals(data[idx+3] || []),
+        contributionProfit:  getVals(data[idx+4] || []),
+      };
+    };
+
+    const wmtPL   = parseChannel(roi, 'Walmart Omni Online');
+    const tkmPL   = parseChannel(roi, 'TKM');
+    const ttPL    = parseChannel(roi, 'TikTok & Flip');
+    const othPL   = parseChannel(roi, 'Other Omni Online');
+    const omniPL  = parseChannel(roi, 'Omni Channel Total');
+
+    // Use exact row indices based on known sheet structure (0-indexed)
+    // anl[11] = Walmart monthly ROI, anl[12] = Omni monthly ROI
+    // anl[38] = Walmart Inv Cost, anl[39] = Omni Inv Cost
+    const g = (row, cols=[2,3,4,5]) => (row||[]).slice ? cols.map(i => parseFloat(row[i]) || 0) : [0,0,0,0];
+
+    const getROIRow = (targetLabel) => {
+      // Search only within Table 2 (rows 10-14 in anl)
+      for (let i = 10; i <= 14; i++) {
+        if (anl[i] && anl[i][1] && String(anl[i][1]).trim().includes(targetLabel)) {
+          return g(anl[i]);
+        }
+      }
+      return [0,0,0,0];
+    };
+
+    const wmtInvRow  = anl[39]; // Walmart Inv Cost row (row 40 in sheet, 0-indexed = 39)
+    const omniInvRow = anl[38]; // Omni Channel Inv Cost row (row 39 in sheet, 0-indexed = 38)
+
+    // Monthly Average Inventory Cost + Contribution Profit, read directly from the ROI Report tab.
+    // Find a labeled row within the `roi` 2D array, returning the 4 monthly values (cols 2-5).
+    const findRoiRow = (label, startAfter) => {
+      for (let i = (startAfter||0); i < roi.length; i++) {
+        if (roi[i] && roi[i][1] && String(roi[i][1]).trim() === label) return i;
+      }
+      return -1;
+    };
+    const roiVals = (rowIdx) => rowIdx>=0 ? [2,3,4,5].map(c => parseFloat(roi[rowIdx][c])||0) : [0,0,0,0];
+
+    // Walmart block then Omni block — each has its own "Average Inventory Cost" + "Contribution Profit"
+    const wmtHdr  = findRoiRow('Walmart Omni Online');
+    const omniHdr = findRoiRow('Omni Channel (Combined)');
+    const wmtAvgInvMo  = roiVals(findRoiRow('Average Inventory Cost', wmtHdr));
+    const wmtCPMo      = roiVals(findRoiRow('Contribution Profit', wmtHdr));
+    const omniAvgInvMo = roiVals(findRoiRow('Average Inventory Cost', omniHdr));
+    const omniCPMo     = roiVals(findRoiRow('Contribution Profit', omniHdr));
+
+    // YTD values read DIRECTLY from Table 1 (Analysis tab rows 6 & 7) so KPIs match the report exactly.
+    const t1Row = (label) => { for(let i=0;i<anl.length;i++){ if(anl[i]&&anl[i][1]&&String(anl[i][1]).trim()===label) return anl[i]; } return null; };
+    const wmtT1  = t1Row('Walmart Omni Online');     // [_,label, YTD CP, AvgInv, YTD ROI]
+    const omniT1 = t1Row('Omni Channel (Combined)');
+
+    // Margin analysis — search within Table 4 only (rows 25-35)
+    const findMargin = (label) => {
+      for (let i = 25; i <= 35; i++) {
+        if (anl[i] && anl[i][1] && String(anl[i][1]).includes(label)) {
+          return g(anl[i]);
+        }
+      }
+      return [0,0,0,0];
+    };
+
+    ROI_DATA = {
+      months: MONTHS,
+      channels: {
+        'Walmart Omni Online': { pl: wmtPL,  roi: getROIRow('Walmart Omni Online') },
+        'TKM':                 { pl: tkmPL,  roi: [0,0,0,0] },
+        'TikTok & Flip':       { pl: ttPL,   roi: [0,0,0,0] },
+        'Other Omni Online':   { pl: othPL,  roi: [0,0,0,0] },
+        'Omni Channel Total':  { pl: omniPL, roi: getROIRow('Omni Channel (Combined)') },
+      },
+      margins: {
+        'Walmart Omni Online': {
+          gross: findMargin('Walmart Omni Online  —  Gross Margin'),
+          contribution: findMargin('Walmart Omni Online  —  Contribution Margin'),
+        },
+        'TKM': {
+          gross: findMargin('TKM  —  Gross Margin'),
+          contribution: findMargin('TKM  —  Contribution Margin'),
+        },
+        'TikTok & Flip': {
+          gross: findMargin('TikTok & Flip  —  Gross Margin'),
+          contribution: findMargin('TikTok & Flip  —  Contribution Margin'),
+        },
+        'Other Omni Online': {
+          gross: findMargin('Other Omni Online  —  Gross Margin'),
+          contribution: findMargin('Other Omni Online  —  Contribution Margin'),
+        },
+      },
+      inventory: {
+        dates: ['Dec 29', 'Feb 2', 'Mar 2', 'Mar 30', 'Apr 27'],
+        walmart: wmtInvRow  ? [2,3,4,5,6].map(i => parseFloat(wmtInvRow[i])||0)  : [593562.3,696331.16,625219.31,789978.84,819654.44],
+        omni:    (()=>{ const v=[2,3,4,5,6].map(i=>parseFloat(omniInvRow?.[i])||0); return v.some(x=>x>0)?v:[956944.89,977458.11,892190.41,837890.38,814791.21]; })(),
+      },
+      ytd: {
+        // Read DIRECTLY from Table 1 so KPIs exactly match the ROI report
+        wmtProfit:    wmtT1  ? (parseFloat(wmtT1[2])||0)  : 130099.78,
+        omniProfit:   omniT1 ? (parseFloat(omniT1[2])||0) : 278336.13,
+        wmtAvgInv:    wmtT1  ? (parseFloat(wmtT1[3])||0)  : 704534.42,
+        omniAvgInv:   omniT1 ? (parseFloat(omniT1[3])||0) : 895514.36,
+        wmtROI:       wmtT1  ? (parseFloat(wmtT1[4])||0)  : 0.184661,
+        omniROI:      omniT1 ? (parseFloat(omniT1[4])||0) : 0.310811,
+      },
+      // Monthly trend arrays for the two divergence charts
+      trend: {
+        wmtCP:      wmtCPMo,
+        wmtAvgInv:  wmtAvgInvMo,
+        omniCP:     omniCPMo,
+        omniAvgInv: omniAvgInvMo,
+      }
+    };
+
+    renderROI();
+  } catch(e) {
+    console.error('ROI load error:', e);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER ROI VIEW
+// ═══════════════════════════════════════════════════════
+function renderROI() {
+  if (!ROI_DATA.months) return;
+  const d = ROI_DATA;
+
+  // KPIs — read straight from Table 1 values (match the report exactly)
+  document.getElementById('rk-profit').textContent     = fmt$(d.ytd.omniProfit);
+  document.getElementById('rk-roi').textContent        = fmtP(d.ytd.omniROI * 100);
+  document.getElementById('rk-omni-inv').textContent   = fmt$(d.ytd.omniAvgInv);
+  document.getElementById('rk-wmt-profit').textContent = fmt$(d.ytd.wmtProfit);
+  document.getElementById('rk-wmt-roi').textContent    = fmtP(d.ytd.wmtROI * 100);
+  document.getElementById('rk-wmt-inv').textContent    = fmt$(d.ytd.wmtAvgInv);
+
+  buildROITrend();
+  buildROIProfit();
+  buildROIDivergence();
+  buildROISummaryTable();
+}
+
+// ── ROI TREND LINE ──
+function buildROITrend() {
+  const d = ROI_DATA;
+  const ctx = document.getElementById('ch-roi-trend').getContext('2d');
+  if (charts['roi-trend']) charts['roi-trend'].destroy();
+
+  const datasets = [
+    { label:'Walmart', data: d.channels['Walmart Omni Online'].roi.map(v=>v*100), borderColor:'#4f46e5', backgroundColor:'transparent', tension:.4, pointRadius:4, borderWidth:2 },
+    { label:'Omni Total', data: d.channels['Omni Channel Total'].roi.map(v=>v*100), borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.1)', fill:true, tension:.4, pointRadius:4, borderWidth:2 },
+  ];
+
+  // Add 0 reference line
+  charts['roi-trend'] = new Chart(ctx, {
+    type:'line',
+    data:{ labels: d.months, datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{labels:{boxWidth:8,font:{size:10}},position:'bottom'},
+        tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw.toFixed(1)+'%'}},
+        annotation: { annotations: { zeroline: { type:'line', yMin:0, yMax:0, borderColor:'#e2e8f0', borderWidth:1, borderDash:[4,4] } } }
+      },
+      scales:{
+        y:{ticks:{callback:v=>v.toFixed(0)+'%',font:{size:10}}, grid:{color:'#f0f4f8'}},
+        x:{ticks:{font:{size:10}}}
+      }
+    }
+  });
+}
+
+// ── CONTRIBUTION PROFIT BAR ──
+function buildROIProfit() {
+  const d = ROI_DATA;
+  const channels = ['Walmart Omni Online','TKM','TikTok & Flip','Other Omni Online'];
+  const ctx = document.getElementById('ch-roi-profit').getContext('2d');
+  if (charts['roi-profit']) charts['roi-profit'].destroy();
+
+  charts['roi-profit'] = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: d.months,
+      datasets: channels.map((ch,i) => ({
+        label: ch,
+        data: d.channels[ch]?.pl?.contributionProfit || [],
+        backgroundColor: Object.values(CHANNEL_COLORS)[i],
+        borderRadius: 4,
+        stack: 'profit'
+      }))
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{labels:{boxWidth:8,font:{size:9}},position:'bottom'},
+        tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt$(c.raw)}}
+      },
+      scales:{
+        y:{ticks:{callback:v=>fmtK(v),font:{size:10}}, grid:{color:'#f0f4f8'}},
+        x:{ticks:{font:{size:10}}}
+      }
+    }
+  });
+}
+
+// ── MARGIN ANALYSIS ──
+// ── CP vs AVG INVENTORY COST DIVERGENCE (per channel, dual-axis) ──
+function buildROIDivergence() {
+  const d = ROI_DATA;
+  const labels = d.months; // ['Jan 2026', ...]
+  const mk = (canvasId, chartKey, cp, inv, cpColor) => {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    if (charts[chartKey]) charts[chartKey].destroy();
+    charts[chartKey] = new Chart(ctx, {
+      type:'line',
+      data:{ labels, datasets:[
+        { label:'Contribution Profit', data:cp, borderColor:cpColor, backgroundColor:'transparent', tension:.3, pointRadius:4, borderWidth:2, yAxisID:'y' },
+        { label:'Avg Inventory Cost', data:inv, borderColor:'#64748b', backgroundColor:'transparent', borderDash:[5,4], tension:.3, pointRadius:4, borderWidth:2, yAxisID:'y' },
+      ]},
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{labels:{boxWidth:8,font:{size:10}},position:'bottom'},
+          tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt$(c.raw)}}
+        },
+        scales:{
+          y:{position:'left', beginAtZero:true, ticks:{callback:v=>fmtK(v),font:{size:9}}, grid:{color:'#f0f4f8'}},
+          x:{ticks:{font:{size:9}}}
+        }
+      }
+    });
+  };
+  mk('ch-roi-omni-div', 'roi-omni-div', d.trend.omniCP, d.trend.omniAvgInv, '#4f46e5');
+  mk('ch-roi-wmt-div',  'roi-wmt-div',  d.trend.wmtCP,  d.trend.wmtAvgInv,  '#10b981');
+}
+
+// ── P&L SUMMARY TABLE ──
+function buildROISummaryTable() {
+  const d = ROI_DATA;
+  const channels = ['Walmart Omni Online','TKM','TikTok & Flip','Other Omni Online','Omni Channel Total'];
+
+  document.getElementById('roi-summary-tbody').innerHTML = channels.map((ch,i) => {
+    const pl  = d.channels[ch]?.pl;
+    const roi = d.channels[ch]?.roi || [];
+    const mg  = d.margins[ch];
+    if (!pl) return '';
+
+    const mIdxs = getROICheckedMonths()==='all'?[0,1,2,3]:getROICheckedMonths();
+    const totGRev   = mIdxs.reduce((s,i)=>s+(pl.grossRevenue[i]||0),0);
+    const totNRev   = mIdxs.reduce((s,i)=>s+(pl.netRevenue[i]||0),0);
+    const totGProf  = mIdxs.reduce((s,i)=>s+(pl.grossProfit[i]||0),0);
+    const totCProf  = mIdxs.reduce((s,i)=>s+(pl.contributionProfit[i]||0),0);
+    const gMargin   = totGRev>0 ? totGProf/totGRev*100 : 0;
+    const cMargin   = totGRev>0 ? totCProf/totGRev*100 : 0;
+
+    // Avg inventory cost — only available for Walmart and Omni Total
+    // Avg Inv = (Beg Jan + End Apr) / 2
+    let avgInvCost = '—';
+    let ytdROI = '—';
+    if (ch === 'Walmart Omni Online') {
+      const begInv = d.inventory.walmart[0] || 0;
+      const endInv = d.inventory.walmart[4] || 0;
+      const avgInv = (begInv + endInv) / 2;
+      avgInvCost = fmt$(avgInv);
+      ytdROI = fmtP(d.ytd.wmtROI*100);
+    } else if (ch === 'Omni Channel Total') {
+      const begInv = d.inventory.omni[0] || 0;
+      const endInv = d.inventory.omni[4] || 0;
+      const avgInv = (begInv + endInv) / 2;
+      avgInvCost = fmt$(avgInv);
+      ytdROI = fmtP(d.ytd.omniROI*100);
+    }
+
+    const profColor = totCProf >= 0 ? '#10b981' : '#ef4444';
+    const isBold    = ch === 'Omni Channel Total';
+
+    return `<tr style="${isBold?'background:#f8f9ff;font-weight:800':''}">
+      <td style="font-weight:700"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${Object.values(CHANNEL_COLORS)[i]};margin-right:6px"></span>${ch}</td>
+      <td>${fmt$(totGRev)}</td>
+      <td>${fmt$(totNRev)}</td>
+      <td>${fmt$(totGProf)}</td>
+      <td>${fmtP(gMargin)}</td>
+      <td style="font-weight:800;color:${profColor}">${fmt$(totCProf)}</td>
+      <td style="color:${cMargin>=0?'#10b981':'#ef4444'};font-weight:700">${fmtP(cMargin)}</td>
+      <td>${avgInvCost}</td>
+      <td style="font-weight:800">${ytdROI}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── LOAD ROI ON INIT ──
+loadROIData();
+
+function getROICheckedMonths() {
+  const cbs = [...document.querySelectorAll('#ms-roi-month-opts input:checked')];
+  return cbs.length === 4 ? 'all' : cbs.map(c => parseInt(c.value));
+}
+function getROICheckedChannels() {
+  const cbs = [...document.querySelectorAll('#ms-roi-ch-opts input:checked')];
+  const all = ['Walmart Omni Online','TKM','TikTok & Flip','Other Omni Online'];
+  return cbs.length === all.length ? 'all' : cbs.map(c => c.value);
+}
+function renderROIFiltered() {
+  if (!ROI_DATA.months) return;
+  const selMonths   = getROICheckedMonths();
+  const selChannels = getROICheckedChannels();
+  const monthIdxs   = selMonths === 'all' ? [0,1,2,3] : selMonths;
+  const filteredMonths = monthIdxs.map(i => MONTHS[i]);
+
+  // Filter channels for profit chart
+  const channels = selChannels === 'all'
+    ? ['Walmart Omni Online','TKM','TikTok & Flip','Other Omni Online']
+    : selChannels;
+
+  // Rebuild profit chart with filtered months & channels
+  const ctx1 = document.getElementById('ch-roi-profit').getContext('2d');
+  if (charts['roi-profit']) charts['roi-profit'].destroy();
+  charts['roi-profit'] = new Chart(ctx1, {
+    type:'bar',
+    data:{
+      labels: filteredMonths,
+      datasets: channels.map((ch,i) => ({
+        label: ch,
+        data: monthIdxs.map(mi => ROI_DATA.channels[ch]?.pl?.contributionProfit[mi] || 0),
+        backgroundColor: CHANNEL_COLORS[ch] || MKT_COLORS[i],
+        borderRadius: 4,
+        stack: 'profit'
+      }))
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{boxWidth:8,font:{size:9}},position:'bottom'}, tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt$(c.raw)}}},
+      scales:{y:{ticks:{callback:v=>fmtK(v),font:{size:10}},grid:{color:'#f0f4f8'}},x:{ticks:{font:{size:10}}}}
+    }
+  });
+
+  // Rebuild ROI trend with filtered months
+  const ctx2 = document.getElementById('ch-roi-trend').getContext('2d');
+  if (charts['roi-trend']) charts['roi-trend'].destroy();
+  const roiChannels = selChannels === 'all'
+    ? ['Walmart Omni Online','Omni Channel Total']
+    : [...new Set([...selChannels.filter(c=>c==='Walmart Omni Online'), 'Omni Channel Total'])];
+
+  charts['roi-trend'] = new Chart(ctx2, {
+    type:'line',
+    data:{
+      labels: filteredMonths,
+      datasets: roiChannels.map((ch,i) => ({
+        label: ch==='Omni Channel Total'?'Omni Total':ch,
+        data: monthIdxs.map(mi => {
+          const v = ROI_DATA.channels[ch]?.roi[mi] || 0;
+          return Math.abs(v)<10 ? v*100 : v;
+        }),
+        borderColor: CHANNEL_COLORS[ch] || MKT_COLORS[i],
+        backgroundColor: i===1?'rgba(16,185,129,.1)':'transparent',
+        fill: i===1, tension:.4, pointRadius:4, borderWidth:2
+      }))
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{boxWidth:8,font:{size:10}},position:'bottom'}, tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw.toFixed(1)+'%'}}},
+      scales:{y:{ticks:{callback:v=>v.toFixed(0)+'%',font:{size:10}},grid:{color:'#f0f4f8'}},x:{ticks:{font:{size:10}}}}
+    }
+  });
+
+  // Rebuild summary table
+  buildROISummaryTable();
+  // Update KPIs based on filtered months and channels
+  updateROIKPIs(monthIdxs, channels);
+  // Divergence charts always reflect the full monthly trend (tracker view)
+  buildROIDivergence();
+}
+
+function resetROIFilters() {
+  document.querySelectorAll('#ms-roi-month-opts input, #ms-roi-ch-opts input').forEach(cb => cb.checked = true);
+  updateMSBtn('ms-roi-month');
+  updateMSBtn('ms-roi-ch');
+  renderROI();
+}
+
+function updateROIKPIs(monthIdxs, channels) {
+  const d = ROI_DATA;
+  // Omni KPI must NEVER include Walmart — Walmart has its own separate KPI/card.
+  // The Omni channel = TKM + TikTok & Flip + Other Omni Online only.
+  const OMNI_SUB = ['TKM','TikTok & Flip','Other Omni Online'];
+  // Respect channel filter, but only among the Omni sub-channels (drop Walmart if present)
+  const selCh = (channels && channels.length > 0)
+    ? channels.filter(c => OMNI_SUB.indexOf(c) >= 0)
+    : OMNI_SUB.slice();
+  const omniCh = selCh.length > 0 ? selCh : OMNI_SUB.slice();
+
+  const omniCP  = omniCh.reduce((s,ch) => s + monthIdxs.reduce((s2,i) => s2 + (d.channels[ch]?.pl?.contributionProfit[i]||0), 0), 0);
+  const wmtCP   = monthIdxs.reduce((s,i) => s + (d.channels['Walmart Omni Online']?.pl?.contributionProfit[i]||0), 0);
+  const omniRev = omniCh.reduce((s,ch) => s + monthIdxs.reduce((s2,i) => s2 + (d.channels[ch]?.pl?.grossRevenue[i]||0), 0), 0);
+  const omniGP  = omniCh.reduce((s,ch) => s + monthIdxs.reduce((s2,i) => s2 + (d.channels[ch]?.pl?.grossProfit[i]||0), 0), 0);
+
+  // ROI for filtered period: CP / avg(beg, end) of selected period
+  const wmtInv  = d.inventory.walmart;
+  const omniInv = d.inventory.omni;
+  const wmtBeg  = wmtInv[monthIdxs[0]]  || wmtInv[0]  || 0;
+  const wmtEnd  = wmtInv[monthIdxs[monthIdxs.length-1]+1] || wmtInv[4] || 0;
+  const omniBeg = omniInv[monthIdxs[0]] || omniInv[0] || 0;
+  const omniEnd = omniInv[monthIdxs[monthIdxs.length-1]+1] || omniInv[4] || 0;
+
+  const wmtROI  = wmtBeg+wmtEnd > 0  ? wmtCP  / ((wmtBeg+wmtEnd)/2)  * 100 : d.ytd.wmtROI*100;
+  const omniROI = omniBeg+omniEnd > 0 ? omniCP / ((omniBeg+omniEnd)/2) * 100 : d.ytd.omniROI*100;
+
+  document.getElementById('rk-profit').textContent     = fmt$(omniCP);
+  document.getElementById('rk-roi').textContent        = fmtP(omniROI);
+  document.getElementById('rk-omni-inv').textContent   = fmt$(omniBeg+omniEnd>0 ? (omniBeg+omniEnd)/2 : d.ytd.omniAvgInv);
+  document.getElementById('rk-wmt-profit').textContent = fmt$(wmtCP);
+  document.getElementById('rk-wmt-roi').textContent    = fmtP(wmtROI);
+  document.getElementById('rk-wmt-inv').textContent    = fmt$(wmtBeg+wmtEnd>0 ? (wmtBeg+wmtEnd)/2 : d.ytd.wmtAvgInv);
+}
+
+
+
+// ═══════════════════════════════════════════════════════
+//  EXCESS INVENTORY DATA & PARSING
+// ═══════════════════════════════════════════════════════
+let EXCESS_RAW = [];      // [{asin, brand, excessUnits, excessCost, totalInvValue}]
+let EXCESS_ISS = {};      // asin -> {channels:{}, connectedCount}
+let EXCESS_CLASS = {};    // asin -> classification
+let EXCESS_CHANNELS = ['Target','Lowes','Macys','Wayfair','Kohls','TikTok','Home Depot','Staples'];
+
+async function loadExcessData() {
+  if (!EXCESS_APP_URL) return;
+  try {
+    const res = await fetch(EXCESS_APP_URL + '?t=' + Date.now(), {cache:'no-store'});
+    if (!res.ok) throw new Error('Excess Apps Script returned ' + res.status);
+    const json = await res.json();
+
+    const ex  = json.excess || [];
+    const iss = json.iss || [];
+    const ap  = json.action || [];
+
+    // Parse Excess Inv Data: row0 headers
+    // cols: 0=Asin,1=ItemID,2=Brand,3=Unis,4=6MDemand,5=ExcessUnits,6=LandedCost,7=ExcessIn$
+    EXCESS_RAW = [];
+    for (let i=1; i<ex.length; i++) {
+      const r = ex[i];
+      if (!r[0]) continue;
+      const eu = parseFloat(r[5]) || 0;
+      const ec = parseFloat(r[7]) || 0;
+      const landedCost = parseFloat(r[6]) || 0;
+      const unis = parseFloat(r[3]) || 0;
+      EXCESS_RAW.push({
+        asin: String(r[0]).trim(),
+        brand: String(r[2]||'Unknown').trim(),
+        excessUnits: eu,
+        excessCost: ec,
+        landedCost: landedCost,
+        unitsOnHand: unis,  // Unis on 5/19 = total units on hand
+      });
+    }
+
+    // Parse ISS Connection: 0=Asin,2=ExcessUnits,3-10=channels,12=ConnectedCount
+    EXCESS_ISS = {};
+    for (let i=1; i<iss.length; i++) {
+      const r = iss[i];
+      if (!r[0]) continue;
+      const chs = {};
+      EXCESS_CHANNELS.forEach((ch,idx) => { chs[ch] = r[3+idx]===true || r[3+idx]==='TRUE' || r[3+idx]===1; });
+      const cc = parseInt(r[12]) || Object.values(chs).filter(Boolean).length;
+      EXCESS_ISS[String(r[0]).trim()] = { channels: chs, connectedCount: cc };
+    }
+
+    // Parse Action Plan: 0=ASIN, 13=Classification
+    EXCESS_CLASS = {};
+    for (let i=1; i<ap.length; i++) {
+      const r = ap[i];
+      if (!r[0]) continue;
+      EXCESS_CLASS[String(r[0]).trim()] = String(r[13]||'Unclassified').trim();
+    }
+
+    populateExcessFilters();
+    renderExcess();
+  } catch(e) {
+    console.error('Excess load error:', e);
+  }
+}
+
+function populateExcessFilters() {
+  // Brands
+  const brands = [...new Set(EXCESS_RAW.filter(r=>r.excessUnits>0).map(r=>r.brand))].sort();
+  buildMS('ms-ex-brand-opts', brands, "updateMSBtn('ms-ex-brand');renderExcess()");
+
+  // Classifications
+  const classes = [...new Set(Object.values(EXCESS_CLASS))].sort();
+  buildMS('ms-ex-class-opts', classes, "updateMSBtn('ms-ex-class');renderExcess()");
+
+  // Channel counts (0-8)
+  const counts = [...new Set(EXCESS_RAW.map(r => {
+    const iss = EXCESS_ISS[r.asin];
+    return iss ? iss.connectedCount : 0;
+  }))].sort((a,b)=>a-b);
+  buildMS('ms-ex-ch-opts', counts.map(c=>c+' channels'), "updateMSBtn('ms-ex-ch');renderExcess()");
+}
+
+function getExcessFiltered() {
+  const selBrands = getChecked('ms-ex-brand');
+  const selClass  = getChecked('ms-ex-class');
+  const selCh     = getChecked('ms-ex-ch');
+
+  return EXCESS_RAW.filter(r => {
+    if (r.excessUnits <= 0) return false;
+    if (selBrands !== 'all' && !selBrands.includes(r.brand)) return false;
+    const cls = EXCESS_CLASS[r.asin] || 'Unclassified';
+    if (selClass !== 'all' && !selClass.includes(cls)) return false;
+    const iss = EXCESS_ISS[r.asin];
+    const cc = iss ? iss.connectedCount : 0;
+    if (selCh !== 'all' && !selCh.includes(cc+' channels')) return false;
+    return true;
+  });
+}
+
+function resetExcessFilters() {
+  selectAllMS('ms-ex-brand');
+  selectAllMS('ms-ex-class');
+  selectAllMS('ms-ex-ch');
+  renderExcess();
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER EXCESS VIEW
+// ═══════════════════════════════════════════════════════
+function renderExcess() {
+  const rows = getExcessFiltered();
+
+  // KPIs
+  const totalCost  = rows.reduce((s,r)=>s+r.excessCost, 0);
+  const totalUnits = rows.reduce((s,r)=>s+r.excessUnits, 0);
+  const totalSkus  = rows.length;
+  // Excess % of inventory = Excess Units ÷ Total Units on Hand (unit basis)
+  // Denominator = full inventory units for the same brand set in view
+  const selBrandsRaw = getChecked('ms-ex-brand');
+  const totalUnitsOnHand = EXCESS_RAW.reduce((s,r)=>{
+    const brandOk = selBrandsRaw==='all' ? true : selBrandsRaw.includes(r.brand);
+    return brandOk ? s + r.unitsOnHand : s;
+  }, 0);
+  const pctOfInv = totalUnitsOnHand>0 ? totalUnits/totalUnitsOnHand*100 : 0;
+
+  document.getElementById('ek-cost').textContent  = fmt$(totalCost);
+  document.getElementById('ek-units').textContent = fmtN(totalUnits);
+  document.getElementById('ek-skus').textContent  = fmtN(totalSkus);
+  document.getElementById('ek-pct').textContent   = fmtP(pctOfInv);
+
+  buildExcessBrandCharts(rows);
+  buildExcessClassChart(rows);
+  buildExcessChannelCharts(rows);
+  buildExcessTables(rows);
+}
+
+function buildExcessBrandCharts(rows) {
+  const byBrand = {};
+  rows.forEach(r => {
+    if (!byBrand[r.brand]) byBrand[r.brand] = {units:0, cost:0};
+    byBrand[r.brand].units += r.excessUnits;
+    byBrand[r.brand].cost  += r.excessCost;
+  });
+
+  // Cost by brand (sorted desc, top 12)
+  const costSorted = Object.entries(byBrand).sort((a,b)=>b[1].cost-a[1].cost).slice(0,12);
+  const ctx1 = document.getElementById('ch-ex-cost-brand').getContext('2d');
+  if (charts['ex-cost-brand']) charts['ex-cost-brand'].destroy();
+  charts['ex-cost-brand'] = new Chart(ctx1, {
+    type:'bar',
+    data:{ labels: costSorted.map(x=>x[0]), datasets:[{ data: costSorted.map(x=>x[1].cost), backgroundColor:'#4f46e5', borderRadius:4 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmt$(c.raw)}}}, scales:{y:{ticks:{callback:v=>fmtK(v),font:{size:10}},grid:{color:'#f0f4f8'}},x:{ticks:{font:{size:10}}}} }
+  });
+
+  // Units by brand
+  const unitsSorted = Object.entries(byBrand).sort((a,b)=>b[1].units-a[1].units).slice(0,12);
+  const ctx2 = document.getElementById('ch-ex-units-brand').getContext('2d');
+  if (charts['ex-units-brand']) charts['ex-units-brand'].destroy();
+  charts['ex-units-brand'] = new Chart(ctx2, {
+    type:'bar',
+    data:{ labels: unitsSorted.map(x=>x[0]), datasets:[{ data: unitsSorted.map(x=>x[1].units), backgroundColor:'#10b981', borderRadius:4 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmtN(c.raw)+' units'}}}, scales:{y:{ticks:{callback:v=>fmtK(v),font:{size:10}},grid:{color:'#f0f4f8'}},x:{ticks:{font:{size:10}}}} }
+  });
+}
+
+function buildExcessClassChart(rows) {
+  const byClass = {};
+  rows.forEach(r => {
+    const cls = EXCESS_CLASS[r.asin] || 'Unclassified';
+    byClass[cls] = (byClass[cls]||0) + r.excessCost;
+  });
+  const entries = Object.entries(byClass).sort((a,b)=>b[1]-a[1]);
+  const COLORS = ['#4f46e5','#10b981','#f59e0b','#ec4899','#6366f1','#94a3b8'];
+  const ctx = document.getElementById('ch-ex-class').getContext('2d');
+  if (charts['ex-class']) charts['ex-class'].destroy();
+  charts['ex-class'] = new Chart(ctx, {
+    type:'doughnut',
+    data:{ labels: entries.map(x=>x[0]), datasets:[{ data: entries.map(x=>x[1]), backgroundColor: COLORS, borderWidth:2, borderColor:'#fff' }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:10}}}, tooltip:{callbacks:{label:c=>c.label+': '+fmt$(c.raw)}}} }
+  });
+}
+
+function buildExcessChannelCharts(rows) {
+  // Excess units by # connected channels
+  const byCount = {};
+  rows.forEach(r => {
+    const iss = EXCESS_ISS[r.asin];
+    const cc = iss ? iss.connectedCount : 0;
+    byCount[cc] = (byCount[cc]||0) + r.excessUnits;
+  });
+  const counts = Object.keys(byCount).map(Number).sort((a,b)=>a-b);
+  const ctx = document.getElementById('ch-ex-channels').getContext('2d');
+  if (charts['ex-channels']) charts['ex-channels'].destroy();
+  charts['ex-channels'] = new Chart(ctx, {
+    type:'bar',
+    data:{ labels: counts.map(c=>c+' ch'), datasets:[{ data: counts.map(c=>byCount[c]), backgroundColor: counts.map(c=>c<=2?'#ef4444':c<=4?'#f59e0b':'#10b981'), borderRadius:4 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmtN(c.raw)+' excess units'}}}, scales:{y:{ticks:{callback:v=>fmtK(v),font:{size:10}},grid:{color:'#f0f4f8'}},x:{ticks:{font:{size:10}}}} }
+  });
+
+}
+
+function buildExcessTables(rows) {
+  // Top 20 by units
+  const byUnits = [...rows].sort((a,b)=>b.excessUnits-a.excessUnits).slice(0,20);
+  document.getElementById('ex-top-units-tbody').innerHTML = byUnits.map(r=>`
+    <tr><td style="font-family:monospace;font-size:10px">${r.asin}</td><td>${r.brand}</td>
+    <td style="font-weight:700">${fmtN(Math.round(r.excessUnits))}</td><td>${fmt$(r.excessCost)}</td></tr>`).join('');
+
+  // Top 20 by cost
+  const byCost = [...rows].sort((a,b)=>b.excessCost-a.excessCost).slice(0,20);
+  document.getElementById('ex-top-cost-tbody').innerHTML = byCost.map(r=>`
+    <tr><td style="font-family:monospace;font-size:10px">${r.asin}</td><td>${r.brand}</td>
+    <td style="font-weight:700;color:#ef4444">${fmt$(r.excessCost)}</td><td>${fmtN(Math.round(r.excessUnits))}</td></tr>`).join('');
+
+  // Channel gap — high excess + low connectivity (<=3 channels), sorted by excess units
+  const gap = rows.filter(r => {
+    const iss = EXCESS_ISS[r.asin];
+    return iss && iss.connectedCount <= 3;
+  }).sort((a,b)=>b.excessUnits-a.excessUnits).slice(0,20);
+  document.getElementById('ex-gap-tbody').innerHTML = gap.map(r=>{
+    const iss = EXCESS_ISS[r.asin];
+    const connectedTo = EXCESS_CHANNELS.filter(ch=>iss.channels[ch]).join(', ') || 'None';
+    return `<tr><td style="font-family:monospace;font-size:10px">${r.asin}</td><td>${r.brand}</td>
+      <td style="font-weight:700">${fmtN(Math.round(r.excessUnits))}</td><td>${fmt$(r.excessCost)}</td>
+      <td style="text-align:center;font-weight:700;color:${iss.connectedCount<=1?'#ef4444':iss.connectedCount<=3?'#f59e0b':'#10b981'}">${iss.connectedCount}</td>
+      <td style="font-size:10px">${connectedTo}</td></tr>`;
+  }).join('');
+}
+
+// Load on init
+loadExcessData();
+
+
+// ═══════════════════════════════════════════════════════
+//  INVENTORY AGE DATA & PARSING
+// ═══════════════════════════════════════════════════════
+let AGE_DATA = {};        // snapshotLabel -> [[itemId, brand, qty, desc, [23 buckets]], ...]
+let AGE_SNAP_ORDER = [];  // chronological snapshot labels
+let AGE_CURRENT_SNAP = null;
+
+// 23 buckets, each 15 days: 1-15,16-30,...330+. Index 0..22
+// 7 bands matching the Summary tab exactly:
+const AGE_7BANDS = {
+  '≤30 D':    [0,1],
+  '31-60 D':  [2,3],
+  '61-90 D':  [4,5],
+  '91-180 D': [6,7,8,9,10,11],
+  '181-270 D':[12,13,14,15,16,17],
+  '271-330 D':[18,19,20,21],
+  '>330 D':   [22],
+};
+// Aggregate bands for KPIs (matches sheet's 0-60D%, >60D%, >180D%)
+const AGE_BANDS = {
+  fresh:  [0,1,2,3],          // ≤60
+  mid:    [4,5,6,7,8,9,10,11],// 61-180
+  aged:   [12,13,14,15,16,17,18,19,20,21,22], // >180
+};
+const MONTH_ORDER = ['Jan 2025','Feb 2025','Mar 2025','Apr 2025','May 2025','Jun 2025','Jul 2025','Aug 2025','Sep 2025','Oct 2025','Nov 2025','Dec 2025','Jan 2026','Feb 2026','Mar 2026','Apr 2026','May 2026'];
+
+async function loadAgeData() {
+  if (!AGE_APP_URL) return;
+  try {
+    const res = await fetch(AGE_APP_URL + '?t=' + Date.now(), {cache:'no-store'});
+    if (!res.ok) throw new Error('Age Apps Script returned ' + res.status);
+    const json = await res.json();
+    AGE_DATA = json.snapshots || {};
+
+    // Order snapshots chronologically
+    AGE_SNAP_ORDER = MONTH_ORDER.filter(m => AGE_DATA[m]);
+    // Any snapshots not in MONTH_ORDER, append
+    Object.keys(AGE_DATA).forEach(k => { if (!AGE_SNAP_ORDER.includes(k)) AGE_SNAP_ORDER.push(k); });
+
+    AGE_CURRENT_SNAP = AGE_SNAP_ORDER[AGE_SNAP_ORDER.length-1]; // latest
+
+    populateAgeFilters();
+    renderAge();
+  } catch(e) {
+    console.error('Age load error:', e);
+  }
+}
+
+function populateAgeFilters() {
+  // Snapshot month — single select (radio-like via buttons)
+  const monthOpts = document.getElementById('ms-age-month-opts');
+  monthOpts.innerHTML = AGE_SNAP_ORDER.slice().reverse().map(m =>
+    `<label style="cursor:pointer"><input type="radio" name="age-snap" value="${m}" ${m===AGE_CURRENT_SNAP?'checked':''} onchange="selectAgeSnap('${m}')"> ${m}</label>`
+  ).join('');
+
+  // Age buckets — the 7 sheet bands
+  buildMS('ms-age-bucket-opts', Object.keys(AGE_7BANDS), "updateMSBtn('ms-age-bucket');renderAge()");
+
+  // Set snapshot button label to current
+  const snapBtn = document.querySelector('#ms-age-month').previousElementSibling;
+  if (snapBtn) snapBtn.innerHTML = AGE_CURRENT_SNAP + ' <span>▾</span>';
+}
+
+function selectAgeSnap(m) {
+  AGE_CURRENT_SNAP = m;
+  // Update button label
+  document.querySelector('#ms-age-month').previousElementSibling.innerHTML = m + ' <span>▾</span>';
+  document.getElementById('ms-age-month').style.display = 'none';
+  renderAge();
+}
+
+// Returns the set of bucket indices (0-22) that are currently selected.
+// 'all' means no filter (all 23 buckets active).
+function getSelectedBucketIdx() {
+  const sel = getChecked('ms-age-bucket');
+  if (sel === 'all') return null; // null = all buckets
+  const idx = new Set();
+  sel.forEach(bandName => { (AGE_7BANDS[bandName]||[]).forEach(i => idx.add(i)); });
+  return idx;
+}
+
+// Masks a row's bucket array to only the selected bucket indices.
+// Returns a NEW 23-length array with non-selected buckets zeroed out.
+function maskBuckets(buckets) {
+  const idx = getSelectedBucketIdx();
+  if (!idx) return buckets; // all selected
+  return buckets.map((v,i) => idx.has(i) ? v : 0);
+}
+
+function getAgeFilteredRows() {
+  // Returns rows for the current snapshot with bucket arrays masked to selected age bands.
+  const rows = AGE_DATA[AGE_CURRENT_SNAP] || [];
+  const idx = getSelectedBucketIdx();
+  if (!idx) return rows.map(r => [r[0], r[1], r[2], r[3], r[4]]);
+  return rows.map(r => {
+    const masked = r[4].map((v,i)=> idx.has(i) ? v : 0);
+    const maskedQty = masked.reduce((s,v)=>s+v, 0); // qty within selected bands
+    return [r[0], r[1], maskedQty, r[3], masked];
+  }).filter(r => r[4].some(v=>v>0)); // keep only rows with units in selected bands
+}
+
+function resetAgeFilters() {
+  AGE_CURRENT_SNAP = AGE_SNAP_ORDER[AGE_SNAP_ORDER.length-1];
+  selectAllMS('ms-age-bucket');
+  document.querySelector('#ms-age-month').previousElementSibling.innerHTML = AGE_CURRENT_SNAP + ' <span>▾</span>';
+  populateAgeFilters();
+  renderAge();
+}
+
+function bandSum(buckets, band) { return band.reduce((s,i)=>s+(buckets[i]||0), 0); }
+
+// ═══════════════════════════════════════════════════════
+//  RENDER AGE VIEW
+// ═══════════════════════════════════════════════════════
+function renderAge() {
+  const rows = getAgeFilteredRows();
+
+  let total=0, fresh=0, mid=0, aged=0, deep330=0;
+  rows.forEach(r => {
+    const b = r[4];
+    total += r[2];
+    fresh += bandSum(b, AGE_BANDS.fresh);
+    mid   += bandSum(b, AGE_BANDS.mid);
+    aged  += bandSum(b, AGE_BANDS.aged);
+    deep330 += (b[22]||0);
+  });
+  // total inventory = sum of current qty; bucket sums may be < total (some unbucketed). Use bucket-based aged% on bucketed total
+  const bucketed = fresh + mid + aged;
+  const denom = bucketed > 0 ? bucketed : total;
+
+  document.getElementById('ak-total').textContent  = fmtN(total);
+  document.getElementById('ak-snap').textContent   = AGE_CURRENT_SNAP + ' snapshot';
+  document.getElementById('ak-fresh').textContent  = fmtP(fresh/denom*100);
+  document.getElementById('ak-aged60').textContent = fmtP(mid/denom*100);
+  document.getElementById('ak-aged180').textContent= fmtP(aged/denom*100);
+  document.getElementById('ak-deepunits').textContent = fmtN(aged);
+
+  buildAgeDist(rows);
+  buildAgeTrend();
+  buildAge180Trend();
+  buildAgeTables(rows);
+}
+
+function buildAgeDist(rows) {
+  // Exact 7 bands from the Summary tab
+  const labels = Object.keys(AGE_7BANDS);
+  const totals = labels.map(b => rows.reduce((s,r)=>s+bandSum(r[4],AGE_7BANDS[b]),0));
+  // Color legend per sheet: Fresh ≤60 green, Caution 61-90 amber, Aged >90 red gradient
+  const colors = ['#10b981','#34d399','#fbbf24','#f59e0b','#fb923c','#ef4444','#b91c1c'];
+  const ctx = document.getElementById('ch-age-dist').getContext('2d');
+  if (charts['age-dist']) charts['age-dist'].destroy();
+  charts['age-dist'] = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{ data: totals, backgroundColor: colors, borderRadius:4 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmtN(c.raw)+' units'}}}, scales:{y:{ticks:{callback:v=>fmtK(v),font:{size:10}},grid:{color:'#f0f4f8'}},x:{ticks:{font:{size:10}}}} }
+  });
+}
+
+function buildAgeTrend() {
+  // Across all snapshots — respects age-bucket filter (masks buckets)
+  const idx = getSelectedBucketIdx();
+  const labels = AGE_SNAP_ORDER.slice();
+  const freshPct=[], aged60Pct=[], aged180Pct=[];
+  labels.forEach(snap => {
+    let rows = AGE_DATA[snap]||[];
+    let f=0,m=0,a=0;
+    rows.forEach(r=>{
+      const bk = idx ? r[4].map((v,i)=>idx.has(i)?v:0) : r[4];
+      f+=bandSum(bk,AGE_BANDS.fresh); m+=bandSum(bk,AGE_BANDS.mid); a+=bandSum(bk,AGE_BANDS.aged);
+    });
+    const d = f+m+a;
+    freshPct.push(d>0?f/d*100:0);
+    aged60Pct.push(d>0?m/d*100:0);
+    aged180Pct.push(d>0?a/d*100:0);
+  });
+  const ctx = document.getElementById('ch-age-trend').getContext('2d');
+  if (charts['age-trend']) charts['age-trend'].destroy();
+  charts['age-trend'] = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets:[
+      { label:'Fresh ≤60d', data:freshPct, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.1)', tension:.3, pointRadius:2, borderWidth:2 },
+      { label:'Aged 61-180d', data:aged60Pct, borderColor:'#f59e0b', backgroundColor:'transparent', tension:.3, pointRadius:2, borderWidth:2 },
+      { label:'Aged >180d', data:aged180Pct, borderColor:'#ef4444', backgroundColor:'transparent', tension:.3, pointRadius:2, borderWidth:2 },
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false}, plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:9}}}, tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw.toFixed(1)+'%'}}}, scales:{y:{ticks:{callback:v=>v.toFixed(0)+'%',font:{size:10}},grid:{color:'#f0f4f8'}},x:{ticks:{font:{size:9}}}} }
+  });
+}
+
+function buildAge180Trend() {
+  const idx = getSelectedBucketIdx();
+  const labels = AGE_SNAP_ORDER.slice();
+  const data = labels.map(snap => {
+    let rows = AGE_DATA[snap]||[];
+    let m=0,a=0,f=0;
+    rows.forEach(r=>{
+      const bk = idx ? r[4].map((v,i)=>idx.has(i)?v:0) : r[4];
+      f+=bandSum(bk,AGE_BANDS.fresh); m+=bandSum(bk,AGE_BANDS.mid); a+=bandSum(bk,AGE_BANDS.aged);
+    });
+    const d=f+m+a; return d>0?a/d*100:0;
+  });
+  const ctx = document.getElementById('ch-age-180trend').getContext('2d');
+  if (charts['age-180trend']) charts['age-180trend'].destroy();
+  charts['age-180trend'] = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets:[
+      { label:'% Aged >180d', data:data, borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,.12)', fill:true, tension:.3, pointRadius:3, borderWidth:2 },
+      { label:'Q4 Target (10%)', data:labels.map(()=>10), borderColor:'#10b981', borderDash:[5,4], pointRadius:0, borderWidth:1.5 },
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:9}}}, tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw.toFixed(1)+'%'}}}, scales:{y:{ticks:{callback:v=>v.toFixed(0)+'%',font:{size:10}},grid:{color:'#f0f4f8'}},x:{ticks:{font:{size:9}}}} }
+  });
+}
+
+function buildAgeTables(rows) {
+  // Oldest — by units >180d
+  const enriched = rows.map(r => {
+    const aged180 = bandSum(r[4], AGE_BANDS.aged);
+    const d330 = r[4][22]||0;
+    const bucketed = bandSum(r[4],AGE_BANDS.fresh)+bandSum(r[4],AGE_BANDS.mid)+aged180;
+    return { itemId:r[0], qty:r[2], desc:r[3], aged180, d330, pct: bucketed>0?aged180/bucketed*100:0 };
+  }).filter(x=>x.aged180>0).sort((a,b)=>b.aged180-a.aged180).slice(0,20);
+
+  document.getElementById('age-oldest-tbody').innerHTML = enriched.map(x=>`
+    <tr><td style="font-family:monospace;font-size:9px">${x.itemId}</td>
+    <td style="font-size:10px">${x.desc}</td><td>${fmtN(Math.round(x.qty))}</td>
+    <td style="font-weight:700;color:#ef4444">${fmtN(Math.round(x.aged180))}</td>
+    <td>${fmtN(Math.round(x.d330))}</td><td>${fmtP(x.pct)}</td></tr>`).join('');
+}
+
+// Load on init
+loadAgeData();
+</script>
+
+</body>
+</html>

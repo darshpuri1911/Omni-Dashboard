@@ -983,7 +983,14 @@ function groupBy(rows, key) {
 }
 const sumSales = rows => rows.reduce((s,r)=>s+r.sales, 0);
 const sumUnits = rows => rows.reduce((s,r)=>s+(parseFloat(r.quantity)||0), 0);
-const cntOrders= rows => rows.length;
+const cntOrders= rows => {
+  // Count DISTINCT Order IDs (multiple rows sharing one Order ID = one order).
+  // Rows without an Order ID each count as their own order (fallback to avoid undercounting).
+  const ids = new Set();
+  let noId = 0;
+  rows.forEach(r => { const id = (r.orderId==null?'':String(r.orderId)).trim(); if(id) ids.add(id); else noId++; });
+  return ids.size + noId;
+};
 const primary  = rows => METRIC==='gmv' ? sumSales(rows) : sumUnits(rows);
 
 // ═══════════════════════════════════════════════════════
@@ -2017,13 +2024,21 @@ function populateAsinFilter() {
   const sorted = Object.entries(asinSet).sort((a,b)=>a[0].localeCompare(b[0]));
   const container = document.getElementById('ms-asin-opts');
   const prevChecked = new Set([...document.querySelectorAll('#ms-asin-opts input:checked')].map(c=>c.value));
+  const prevAll     = new Set([...document.querySelectorAll('#ms-asin-opts input')].map(c=>c.value));
 
-  container.innerHTML = sorted.map(([asin, label]) => `
+  // A box is checked if: nothing was selected before (fresh), OR it was previously checked,
+  // OR it's a newly-appearing ASIN (wasn't in the prior list at all — e.g. ASINs from a
+  // marketplace just added to the selection). This prevents the cascade from silently
+  // dropping rows whose marketplace IS selected but whose ASINs are new to the list.
+  container.innerHTML = sorted.map(([asin, label]) => {
+    const isChecked = prevChecked.size===0 || prevChecked.has(asin) || !prevAll.has(asin);
+    return `
     <label>
-      <input type="checkbox" value="${asin}" ${prevChecked.size===0||prevChecked.has(asin)?'checked':''} 
+      <input type="checkbox" value="${asin}" ${isChecked?'checked':''} 
         onchange="updateMSBtn('ms-asin');applyFilters()">
       <span style="font-size:10px">${label}</span>
-    </label>`).join('');
+    </label>`;
+  }).join('');
   updateMSBtn('ms-asin');
 }
 

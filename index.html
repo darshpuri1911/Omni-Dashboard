@@ -164,6 +164,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .dash-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
 .tab-content { display:none; }
 .tab-content.active { display:block; }
+/* ── Profit Margin tab ── */
+table.pnl-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+table.pnl-table thead th { text-align:right; padding:9px 12px; font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; color:#6b7280; border-bottom:2px solid #eef1f6; font-weight:700; }
+table.pnl-table tbody td { text-align:right; padding:9px 12px; border-bottom:1px solid #f4f6fa; }
+table.pnl-table tbody td:first-child, table.pnl-table thead th:first-child { text-align:left; font-weight:600; }
+table.pnl-table tbody tr:hover { background:#fafbff; }
+table.pnl-table tfoot td { text-align:right; padding:10px 12px; font-weight:800; border-top:2px solid #e4e9f2; background:#fafbff; }
+table.pnl-table tfoot td:first-child { text-align:left; }
 </style>
 </head>
 <body>
@@ -191,6 +199,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <!-- TABS -->
 <div class="dash-tabs">
   <div class="dash-tab active" id="tab-sales" onclick="switchTab('sales')">📊 Sales Dashboard</div>
+  <div class="dash-tab" id="tab-pnl" onclick="switchTab('pnl')">💵 Profit Margin</div>
   <div class="dash-tab" id="tab-kpis" onclick="switchTab('kpis')">📋 Other KPIs</div>
 </div>
 
@@ -238,6 +247,29 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   </div>
   <div class="sep"></div>
   <button class="btn-reset" onclick="resetFilters()">↺ Reset All</button>
+</div>
+
+<!-- PROFIT MARGIN FILTER BAR -->
+<div class="filterbar" id="filterbar-pnl" style="display:none">
+  <label>Filter:</label>
+  <div class="ms-wrap" id="ms-pnl-month-wrap">
+    <button class="ms-btn" onclick="toggleMS('ms-pnl-month')">All Months <span>▾</span></button>
+    <div class="ms-dropdown" id="ms-pnl-month" style="display:none">
+      <div class="ms-actions"><span onclick="selectAllMS('ms-pnl-month')">All</span><span onclick="clearAllMS('ms-pnl-month')">None</span></div>
+      <div class="ms-sep"></div>
+      <div id="ms-pnl-month-opts"></div>
+    </div>
+  </div>
+  <div class="ms-wrap" id="ms-pnl-mkt-wrap">
+    <button class="ms-btn" onclick="toggleMS('ms-pnl-mkt')">All Marketplaces <span>▾</span></button>
+    <div class="ms-dropdown" id="ms-pnl-mkt" style="display:none">
+      <div class="ms-actions"><span onclick="selectAllMS('ms-pnl-mkt')">All</span><span onclick="clearAllMS('ms-pnl-mkt')">None</span></div>
+      <div class="ms-sep"></div>
+      <div id="ms-pnl-mkt-opts"></div>
+    </div>
+  </div>
+  <div class="sep"></div>
+  <button class="btn-reset" onclick="resetPnlFilters()">↺ Reset All</button>
 </div>
 
 <!-- ROI FILTER BAR -->
@@ -503,6 +535,67 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 </div><!-- /page -->
 </div><!-- /content-sales -->
 
+<!-- PROFIT MARGIN TAB -->
+<div class="tab-content" id="content-pnl">
+<div class="page">
+
+  <div id="pnl-kpi-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px"></div>
+
+  <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="card">
+      <div class="card-title"><span class="icon">📈</span>Contribution Profit &amp; Margin by Month</div>
+      <div style="font-size:11px;color:#6b7280;margin:-4px 0 6px">Bars = Contribution Profit ($). Label above each bar = Contribution Margin (%).</div>
+      <div class="chart-wrap" style="height:280px"><canvas id="pnl-ch-month"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">🏪</span>Contribution Margin by Marketplace</div>
+      <div style="font-size:11px;color:#6b7280;margin:-4px 0 6px">Contribution Profit ÷ Net Revenue for each marketplace.</div>
+      <div class="chart-wrap" style="height:280px"><canvas id="pnl-ch-mkt"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title"><span class="icon">📋</span>Profit &amp; Loss by Marketplace</div>
+    <div style="overflow-x:auto">
+      <table class="pnl-table" id="pnl-mkt-table">
+        <thead><tr>
+          <th style="text-align:left">Marketplace</th>
+          <th>Net Revenue</th><th>COGS</th><th>Gross Profit</th>
+          <th>Platform Costs</th><th>Contribution Profit</th><th>Margin %</th>
+        </tr></thead>
+        <tbody></tbody>
+        <tfoot></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <div class="card-title" style="font-size:14px;margin:4px 0 10px"><span class="icon">💸</span>Cost Trends by Category</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card">
+      <div class="card-title"><span class="icon">🧾</span>Revenue Deductions</div>
+      <div style="font-size:11px;color:#6b7280;margin:-4px 0 6px">Taken off gross sales before net revenue: cancelled orders, customer refunds, promotional rebates.</div>
+      <div class="chart-wrap" style="height:210px"><canvas id="pnl-ch-g2n"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">💳</span>Selling Fees</div>
+      <div style="font-size:11px;color:#6b7280;margin:-4px 0 6px">Marketplace commissions and platform fees, net of any fee refunds.</div>
+      <div class="chart-wrap" style="height:210px"><canvas id="pnl-ch-sell"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">📦</span>Fulfillment Fees</div>
+      <div style="font-size:11px;color:#6b7280;margin:-4px 0 6px">Third-party fulfillment fees (net of discounts) plus warehousing, labor and freight.</div>
+      <div class="chart-wrap" style="height:210px"><canvas id="pnl-ch-fulfill"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">📣</span>Advertising Fees</div>
+      <div style="font-size:11px;color:#6b7280;margin:-4px 0 6px">Advertising and promotional media spend by month.</div>
+      <div class="chart-wrap" style="height:210px"><canvas id="pnl-ch-adv"></canvas></div>
+    </div>
+  </div>
+
+</div>
+</div><!-- /content-pnl -->
+
 <!-- OTHER KPIs TAB -->
 <div class="tab-content" id="content-kpis">
 <div class="page">
@@ -766,6 +859,7 @@ const EXCESS_APP_URL = 'https://script.google.com/macros/s/AKfycbx_EOgQOBMo5-nqa
 const AGE_APP_URL = 'https://script.google.com/macros/s/AKfycbzh8VEt27_aWo4m_EWKOIqV30MWU9gEPqSXeMoKifuPmhmQb4iwcQf-RwhEn04X5ZOb/exec'; // Inventory Age
 const BUDGET_APP_URL = 'https://script.google.com/macros/s/AKfycbzprBv_d_QQTImRzb89N7PkuyoXmJb7sjNLeHomEmuPORK_DnxILgZUBue9YyErT7-f9A/exec'; // Omni Budget
 const TRACKER_APP_URL = 'https://script.google.com/macros/s/AKfycbzM5nBo5l9KBilN-SM_aVHbeRr2ZDYjym-wnqdnah6lpW_Z8tBoUVqHhQYGgQqfc5NO/exec'; // Weekly Pace Tracker
+const PNL_APP_URL = 'https://script.google.com/macros/s/AKfycbxLwxylEnuYvm8SZeSnSiwaoCj318MMHKnjCr7jDXaVIBZBvbQylpIIr4Ynqmiv1EcYcg/exec'; // ← Profit & Loss feed (PnL_Feed.gs). Paste the /exec URL after deploying.
 
 // ═══════════════════════════════════════════════════════
 //  GLOBALS
@@ -1500,12 +1594,18 @@ if (!WEB_APP_URL) {
 // ═══════════════════════════════════════════════════════
 function switchTab(tab) {
   document.getElementById('content-sales').classList.toggle('active', tab==='sales');
+  document.getElementById('content-pnl').classList.toggle('active', tab==='pnl');
   document.getElementById('content-kpis').classList.toggle('active', tab==='kpis');
   document.getElementById('tab-sales').classList.toggle('active', tab==='sales');
+  document.getElementById('tab-pnl').classList.toggle('active', tab==='pnl');
   document.getElementById('tab-kpis').classList.toggle('active', tab==='kpis');
 
   // Sales filterbar only on sales tab
   document.getElementById('filterbar-sales').style.display = tab==='sales' ? 'flex' : 'none';
+  // Profit Margin filterbar only on pnl tab
+  const pnlBar = document.getElementById('filterbar-pnl');
+  if (pnlBar) pnlBar.style.display = tab==='pnl' ? 'flex' : 'none';
+  if (tab==='pnl' && typeof loadPnlOnce==='function') loadPnlOnce();
 
   // All KPI sub-view filterbars: hide them all when leaving the KPIs tab
   const kpiBars = ['filterbar-kpis','filterbar-roi','filterbar-excess','filterbar-age'];
@@ -1550,7 +1650,24 @@ function updateMSBtn(id) {
   const cbs = [...document.querySelectorAll(`#${id} input[type=checkbox]`)];
   const checked = cbs.filter(c=>c.checked);
   const btn = document.querySelector(`#${id}`).previousElementSibling;
-  const label = id==='ms-month'?'Month':id==='ms-mkt'?'Marketplace':id==='ms-cat'?'Category':id==='ms-fmonth'?'Month':id==='ms-asin'?'ASIN':id==='ms-roi-month'?'Month':id==='ms-roi-ch'?'Channel':id==='ms-fmkt'?'Marketplace':'Marketplace';
+  const label = id==='ms-month'?'Month':id==='ms-mkt'?'Marketplace':id==='ms-cat'?'Category':id==='ms-fmonth'?'Month':id==='ms-asin'?'ASIN':id==='ms-roi-month'?'Month':id==='ms-roi-ch'?'Channel':id==='ms-fmkt'?'Marketplace':id==='ms-pnl-month'?'Month':id==='ms-pnl-mkt'?'Marketplace':'Marketplace';
+
+  // Month filters: show the actual month names (range if contiguous) instead of a count.
+  if (label==='Month' && checked.length>0 && checked.length<cbs.length) {
+    const M3=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const idxs = checked.map(c=>{
+      const t=(c.value+' '+(c.parentElement?c.parentElement.textContent:'')).trim();
+      for(let i=0;i<12;i++){ if(new RegExp('\\b'+M3[i],'i').test(t)) return i; }
+      const n=parseInt(c.value); return isNaN(n)?-1:n;
+    }).filter(i=>i>=0).sort((a,b)=>a-b);
+    if (idxs.length){
+      const u=[...new Set(idxs)];
+      const contiguous=u.every((v,i)=>i===0||v===u[i-1]+1);
+      const txt=(contiguous&&u.length>1)?`${M3[u[0]]}–${M3[u[u.length-1]]}`:u.map(i=>M3[i]).join(', ');
+      btn.innerHTML = `${txt} <span>▾</span>`;
+      return;
+    }
+  }
   btn.innerHTML = checked.length===0||checked.length===cbs.length
     ? `All ${label}s <span>▾</span>`
     : `${checked.length} ${label}${checked.length>1?'s':''} <span>▾</span>`;
@@ -1561,7 +1678,8 @@ function getChecked(id) {
   return checked.length===0||checked.length===cbs.length ? 'all' : checked;
 }
 function applyCurrentFilters(id) {
-  if(['ms-month','ms-mkt','ms-cat'].includes(id)) applyFilters();
+  if(['ms-month','ms-mkt','ms-cat','ms-asin'].includes(id)) applyFilters();
+  else if(id==='ms-pnl-month' || id==='ms-pnl-mkt') { if(typeof renderPnl==='function') renderPnl(); }
   else applyFcstFilters();
 }
 function buildMS(containerId, values, onchange) {
@@ -3403,6 +3521,235 @@ function buildAgeTables(rows) {
 
 // Load on init
 loadAgeData();
+
+// ═══════════════════════════════════════════════════════
+//  PROFIT MARGIN (P&L) MODULE  — Omni marketplaces
+// ═══════════════════════════════════════════════════════
+let PNL_ROWS = [];
+let PNL_TOTALS = [];
+let PNL_LOADED = false;
+let PNL_CHARTS = {};
+const PNL_MN = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+async function loadPnlOnce(){ if (PNL_LOADED) return; PNL_LOADED = true; await loadPnlData(); }
+
+async function loadPnlData(){
+  try {
+    if (!PNL_APP_URL || PNL_APP_URL.indexOf('PASTE_') === 0){
+      pnlMsg('The Profit Margin feed URL is not set yet. Deploy PnL_Feed.gs and paste its /exec URL into PNL_APP_URL.'); return;
+    }
+    const res = await fetchPnlJson(PNL_APP_URL);
+    if (!res || !res.ok){ pnlMsg('Feed error: ' + (res && res.error ? res.error : 'unknown')); return; }
+    const all = (res.rows || []).filter(r => !r.error && r.period && r.netRevenue);
+    PNL_ROWS   = all.filter(r => !r.isTotal);        // per-marketplace rows
+    PNL_TOTALS = all.filter(r => r.isTotal);          // Total - Actuals rows (with WLF estimate)
+    if (!PNL_ROWS.length){ pnlMsg('No P&L rows returned.'); return; }
+    buildPnlFilters();
+    renderPnl();
+  } catch(e){ pnlMsg('Could not load the Profit Margin feed: ' + e.message); }
+}
+
+async function fetchPnlJson(url){
+  let lastErr;
+  for (let a=0; a<3; a++){
+    try {
+      const r = await fetch(url + (url.indexOf('?')>=0?'&':'?') + 't=' + Date.now() + '_' + a, {cache:'no-store'});
+      const t = await r.text(); const s = t.replace(/^\uFEFF/,'').trim();
+      if (s.charAt(0)==='{' || s.charAt(0)==='[') return JSON.parse(s);
+      lastErr = new Error('Non-JSON response');
+    } catch(e){ lastErr = e; }
+    await new Promise(res=>setTimeout(res,1200));
+  }
+  throw lastErr || new Error('fetch failed');
+}
+
+function pnlMsg(msg){
+  const k=document.getElementById('pnl-kpi-row');
+  if(k) k.innerHTML='<div style="grid-column:1/-1;color:#ef4444;padding:14px;border:1px solid #fecaca;border-radius:10px;background:#fef2f2">'+msg+'</div>';
+  const tb=document.querySelector('#pnl-mkt-table tbody'); if(tb) tb.innerHTML='';
+  const tf=document.querySelector('#pnl-mkt-table tfoot'); if(tf) tf.innerHTML='';
+}
+
+function buildPnlFilters(){
+  const months=[...new Set(PNL_ROWS.map(r=>r.period))].sort();
+  const mkts=[...new Set(PNL_ROWS.map(r=>r.marketplace))].sort();
+  const label=p=>{const parts=p.split('-');return PNL_MN[+parts[1]]+' '+parts[0];};
+  buildMS('ms-pnl-month-opts', months.map(label), "updateMSBtn('ms-pnl-month');renderPnl()");
+  buildMS('ms-pnl-mkt-opts', mkts, "updateMSBtn('ms-pnl-mkt');renderPnl()");
+  buildPnlFilters._L2P={}; months.forEach(p=>buildPnlFilters._L2P[label(p)]=p);
+}
+
+function pnlFiltered(){
+  const monLabels=getChecked('ms-pnl-month'), mkts=getChecked('ms-pnl-mkt');
+  const L2P=buildPnlFilters._L2P||{};
+  const periods = monLabels==='all' ? 'all' : monLabels.map(l=>L2P[l]).filter(Boolean);
+  return PNL_ROWS.filter(r =>
+    (periods==='all' || periods.includes(r.period)) &&
+    (mkts==='all'    || mkts.includes(r.marketplace)));
+}
+
+// Rows used for the TOP-LINE totals (KPIs, month chart, table Total row).
+// When ALL marketplaces are selected, use the Total - Actuals tab (which carries the
+// WLF estimate so CP isn't inflated). When the user narrows to specific marketplaces,
+// fall back to summing those marketplaces' own tabs (Total tab isn't per-marketplace).
+function pnlTotalsRows(){
+  const monLabels=getChecked('ms-pnl-month'), mkts=getChecked('ms-pnl-mkt');
+  const L2P=buildPnlFilters._L2P||{};
+  const periods = monLabels==='all' ? 'all' : monLabels.map(l=>L2P[l]).filter(Boolean);
+  const usingAllMkts = (mkts==='all');
+  if (usingAllMkts && PNL_TOTALS.length){
+    return { rows: PNL_TOTALS.filter(r=>periods==='all'||periods.includes(r.period)), fromTotalTab:true };
+  }
+  return { rows: pnlFiltered(), fromTotalTab:false };
+}
+
+function resetPnlFilters(){
+  selectAllMS('ms-pnl-month'); selectAllMS('ms-pnl-mkt');
+  updateMSBtn('ms-pnl-month'); updateMSBtn('ms-pnl-mkt'); renderPnl();
+}
+
+const pSum=(rows,k)=>rows.reduce((s,r)=>s+(+r[k]||0),0);
+const periodLabel=p=>{const parts=p.split('-');return PNL_MN[+parts[1]]+" '"+parts[0].slice(2);};
+
+function pnlPeriodText(rows){
+  const ps=[...new Set(rows.map(r=>r.period))].sort();
+  if(!ps.length) return '';
+  const yr=ps[0].split('-')[0];
+  const mi=ps.map(p=>+p.split('-')[1]).sort((a,b)=>a-b);
+  const contiguous=mi.every((v,i)=>i===0||v===mi[i-1]+1);
+  const txt=(contiguous&&mi.length>1)?(PNL_MN[mi[0]]+'\u2013'+PNL_MN[mi[mi.length-1]]):mi.map(m=>PNL_MN[m]).join(', ');
+  return txt+' '+yr;
+}
+
+function renderPnl(){
+  const mktRows=pnlFiltered();
+  if(!mktRows.length){ pnlMsg('No data for the selected filters.'); return; }
+  const totals=pnlTotalsRows();
+  const ptxt=pnlPeriodText(mktRows);
+  renderPnlKpis(totals.rows, ptxt, totals.fromTotalTab);
+  renderPnlMonthChart(totals.rows);
+  renderPnlMktChart(mktRows);
+  renderPnlTable(mktRows, totals);
+  renderPnlBuckets(totals.rows);
+}
+
+function renderPnlKpis(rows, ptxt, fromTotal){
+  const nr=pSum(rows,'netRevenue');
+  const cogs=pSum(rows,'cogs');
+  const plat=pSum(rows,'platformCosts');
+  const cp=pSum(rows,'cp');
+  const cm=nr>0?cp/nr*100:0;
+  const card=(cls,l,v,s)=>'<div class="kpi '+cls+'"><div class="k-label">'+l+'</div><div class="k-value">'+v+'</div><div class="k-sub">'+s+'</div></div>';
+  document.getElementById('pnl-kpi-row').innerHTML =
+    card('c1','Net Revenue', fmt$(nr), ptxt||'Selected period') +
+    card('c4','COGS', fmt$(cogs), 'Cost of goods sold') +
+    card('c2','Platform Costs', fmt$(plat), 'Selling + fulfillment + ads + other') +
+    card('c3','Contribution Profit', fmt$(cp), fmtP(cm)+' contribution margin');
+  // Note about the WLF estimate in the top-line totals
+  let n=document.getElementById('pnl-kpi-note');
+  if(!n){ n=document.createElement('div'); n.id='pnl-kpi-note';
+    n.style.cssText='font-size:11px;color:#6b7280;margin:-8px 0 16px;line-height:1.4';
+    const row=document.getElementById('pnl-kpi-row'); row.parentNode.insertBefore(n, row.nextSibling); }
+  n.innerHTML = fromTotal
+    ? 'Totals use the consolidated P&amp;L, which includes an estimated Warehousing, Labor &amp; Freight accrual for months not yet invoiced (so Contribution Profit is not overstated).'
+    : 'Totals reflect the selected marketplaces\u2019 own actuals. Note: Warehousing, Labor &amp; Freight may be un-invoiced ($0) for recent months, which can overstate Contribution Profit.';
+}
+
+function pnlMonths(rows){ return [...new Set(rows.map(r=>r.period))].sort(); }
+function destroyChart(id){ if(PNL_CHARTS[id]){ PNL_CHARTS[id].destroy(); delete PNL_CHARTS[id]; } }
+
+function renderPnlMonthChart(rows){
+  const months=pnlMonths(rows);
+  const cp=months.map(p=>pSum(rows.filter(r=>r.period===p),'cp'));
+  const cm=months.map(p=>{ const rs=rows.filter(r=>r.period===p); const nr=pSum(rs,'netRevenue'); return nr>0?pSum(rs,'cp')/nr*100:0; });
+  destroyChart('pnl-ch-month');
+  const labelPlugin={ id:'cmLabels', afterDatasetsDraw(chart){
+    const ctx=chart.ctx; const meta=chart.getDatasetMeta(0);
+    ctx.save(); ctx.font='700 11px sans-serif'; ctx.textAlign='center';
+    meta.data.forEach((bar,i)=>{ ctx.fillStyle= cm[i]>=0?'#10b981':'#ef4444';
+      ctx.fillText(cm[i].toFixed(1)+'%', bar.x, bar.y-6); });
+    ctx.restore();
+  }};
+  PNL_CHARTS['pnl-ch-month']=new Chart(document.getElementById('pnl-ch-month').getContext('2d'),{
+    type:'bar',
+    data:{ labels:months.map(periodLabel), datasets:[{label:'Contribution Profit', data:cp,
+      backgroundColor:cp.map(v=>v>=0?'#4f46e5':'#ef4444'), borderRadius:4, maxBarThickness:54}]},
+    options:{ responsive:true, maintainAspectRatio:false, layout:{padding:{top:22}},
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>'CP: '+fmt$(c.raw)+' ('+cm[c.dataIndex].toFixed(1)+'% margin)'}}},
+      scales:{ y:{ticks:{callback:v=>fmtK(v),font:{size:10}}, grid:{color:'#f0f4f8'}}, x:{ticks:{font:{size:10}}} }},
+    plugins:[labelPlugin]
+  });
+}
+
+function renderPnlMktChart(rows){
+  const mkts=[...new Set(rows.map(r=>r.marketplace))];
+  const data=mkts.map(mk=>{ const rs=rows.filter(r=>r.marketplace===mk); const nr=pSum(rs,'netRevenue'); const cp=pSum(rs,'cp');
+    return {mk,cm:nr>0?cp/nr*100:0,cp};}).sort((a,b)=>b.cm-a.cm);
+  destroyChart('pnl-ch-mkt');
+  PNL_CHARTS['pnl-ch-mkt']=new Chart(document.getElementById('pnl-ch-mkt').getContext('2d'),{
+    type:'bar',
+    data:{ labels:data.map(d=>d.mk), datasets:[{data:data.map(d=>d.cm),
+      backgroundColor:data.map(d=>d.cm>=0?'#10b981':'#ef4444'), borderRadius:4}]},
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.label+': '+c.raw.toFixed(1)+'% margin (CP '+fmt$(data[c.dataIndex].cp)+')'}}},
+      scales:{ x:{ticks:{callback:v=>v.toFixed(0)+'%',font:{size:10}}, grid:{color:'#f0f4f8'}}, y:{ticks:{font:{size:10}}} }}
+  });
+}
+
+function renderPnlTable(rows, totals){
+  const mkts=[...new Set(rows.map(r=>r.marketplace))];
+  const data=mkts.map(mk=>{ const rs=rows.filter(r=>r.marketplace===mk);
+    const nr=pSum(rs,'netRevenue'), cogs=pSum(rs,'cogs'), gp=nr-cogs,
+      plat=pSum(rs,'platformCosts'), cp=pSum(rs,'cp');
+    const wlfMissing = rs.some(r=>r.wlfMissing);   // any month missing WLF for this marketplace
+    return {mk,nr,cogs,gp,plat,cp,cm:nr>0?cp/nr*100:0, wlfMissing};
+  }).sort((a,b)=>b.nr-a.nr);
+  const anyMissing = data.some(d=>d.wlfMissing);
+  const tb=document.querySelector('#pnl-mkt-table tbody');
+  tb.innerHTML=data.map(d=>'<tr>'+
+    '<td>'+d.mk+(d.wlfMissing?' <span style="color:#f59e0b" title="Warehousing/Labor/Freight not yet invoiced for one or more months">*</span>':'')+'</td>'+
+    '<td>'+fmt$(d.nr)+'</td><td>'+fmt$(d.cogs)+'</td><td>'+fmt$(d.gp)+'</td>'+
+    '<td>'+fmt$(d.plat)+'</td><td style="font-weight:700">'+fmt$(d.cp)+'</td>'+
+    '<td style="font-weight:700;color:'+(d.cm>=0?'#10b981':'#ef4444')+'">'+fmtP(d.cm)+'</td></tr>').join('');
+  // Total row: prefer the Total - Actuals tab (WLF estimate included) when available
+  const trows = (totals && totals.rows && totals.rows.length) ? totals.rows : rows;
+  const nr=pSum(trows,'netRevenue'), cogs=pSum(trows,'cogs'), gp=nr-cogs, plat=pSum(trows,'platformCosts'), cp=pSum(trows,'cp');
+  const cm=nr>0?cp/nr*100:0;
+  const totLabel = (totals && totals.fromTotalTab) ? 'Total (with WLF estimate)' : 'Total';
+  document.querySelector('#pnl-mkt-table tfoot').innerHTML='<tr>'+
+    '<td>'+totLabel+'</td><td>'+fmt$(nr)+'</td><td>'+fmt$(cogs)+'</td><td>'+fmt$(gp)+'</td>'+
+    '<td>'+fmt$(plat)+'</td><td>'+fmt$(cp)+'</td>'+
+    '<td style="color:'+(cm>=0?'#10b981':'#ef4444')+'">'+fmtP(cm)+'</td></tr>';
+  // Disclaimer line under the table
+  let note=document.getElementById('pnl-table-note');
+  if(!note){ note=document.createElement('div'); note.id='pnl-table-note';
+    note.style.cssText='font-size:11px;color:#6b7280;margin-top:8px;line-height:1.5';
+    document.querySelector('#pnl-mkt-table').parentElement.appendChild(note); }
+  note.innerHTML =
+    (anyMissing?'<span style="color:#f59e0b">*</span> Per-marketplace Contribution Profit is <b>overstated</b> for months where Warehousing, Labor &amp; Freight (WLF) invoices have not yet been received (shown as $0 in the marketplace tabs). ':'')+
+    'The <b>Total</b> row uses the consolidated P&amp;L, which includes an <b>estimated WLF accrual</b> for un-invoiced months so the company-level margin is not inflated. Per-marketplace rows use each marketplace\u2019s own actuals.';
+}
+
+function makeBucketChart(canvasId, rows, key, color){
+  const months=pnlMonths(rows);
+  const vals=months.map(p=>pSum(rows.filter(r=>r.period===p), key));
+  destroyChart(canvasId);
+  PNL_CHARTS[canvasId]=new Chart(document.getElementById(canvasId).getContext('2d'),{
+    type:'bar',
+    data:{ labels:months.map(periodLabel), datasets:[{data:vals, backgroundColor:color, borderRadius:4, maxBarThickness:48}]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmt$(c.raw)}}},
+      scales:{ y:{ticks:{callback:v=>fmtK(v),font:{size:10}}, grid:{color:'#f0f4f8'}}, x:{ticks:{font:{size:10}}} }}
+  });
+}
+
+function renderPnlBuckets(rows){
+  makeBucketChart('pnl-ch-g2n', rows, 'bucketRevenueDeductions', '#f59e0b');
+  makeBucketChart('pnl-ch-sell', rows, 'bucketSellingFees', '#6366f1');
+  makeBucketChart('pnl-ch-fulfill', rows, 'bucketFulfillment', '#06b6d4');
+  makeBucketChart('pnl-ch-adv', rows, 'bucketAdvertising', '#ec4899');
+}
+
 </script>
 
 </body>

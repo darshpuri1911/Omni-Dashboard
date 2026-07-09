@@ -333,6 +333,7 @@ table.pnl-table tfoot td:first-child { text-align:left; }
         <label><input type="checkbox" value="1" checked onchange="updateMSBtn('ms-roi-month');renderROIFiltered()"> Feb 2026</label>
         <label><input type="checkbox" value="2" checked onchange="updateMSBtn('ms-roi-month');renderROIFiltered()"> Mar 2026</label>
         <label><input type="checkbox" value="3" checked onchange="updateMSBtn('ms-roi-month');renderROIFiltered()"> Apr 2026</label>
+        <label><input type="checkbox" value="4" checked onchange="updateMSBtn('ms-roi-month');renderROIFiltered()"> May 2026</label>
       </div>
     </div>
   </div>
@@ -716,7 +717,7 @@ table.pnl-table tfoot td:first-child { text-align:left; }
     <!-- Row 3: Full Summary Table -->
     <div class="g1">
       <div class="card">
-        <div class="card-title"><span class="icon">🏆</span>P&L Summary by Channel — Jan to Apr 2026</div>
+        <div class="card-title"><span class="icon">🏆</span>P&L Summary by Channel — Jan to May 2026</div>
         <table class="tbl" id="roi-summary-tbl">
           <thead><tr><th>Channel</th><th>Gross Revenue</th><th>Net Revenue</th><th>Gross Profit</th><th>Gross Margin%</th><th>Contribution Profit</th><th>Contribution Margin%</th><th>Avg Inv Cost</th><th>ROI</th></tr></thead>
           <tbody id="roi-summary-tbody"></tbody>
@@ -2599,7 +2600,7 @@ function switchKPIView(view) {
 //  ROI DATA & PARSING
 // ═══════════════════════════════════════════════════════
 let ROI_DATA = {};
-const MONTHS = ['Jan 2026','Feb 2026','Mar 2026','Apr 2026'];
+const MONTHS = ['Jan 2026','Feb 2026','Mar 2026','Apr 2026','May 2026'];
 const CHANNEL_COLORS = {
   'Walmart Omni Online': '#4f46e5',
   'TKM':                 '#10b981',
@@ -2626,7 +2627,7 @@ async function loadROIData() {
 
     // Helper to find row by label
     const findRow = (data, label) => data.find(r => r[1] && String(r[1]).trim().replace(/\s+/g,' ').includes(label.trim()));
-    const getVals = (row, cols=[2,3,4,5]) => cols.map(i => parseFloat(row[i]) || 0);
+    const getVals = (row, cols=[2,3,4,5,6]) => cols.map(i => parseFloat(row[i]) || 0);
 
     // Monthly ROI by channel
     const roiWmt  = findRow(anl, 'Walmart Omni Online') || [];
@@ -2653,7 +2654,7 @@ async function loadROIData() {
     // Use exact row indices based on known sheet structure (0-indexed)
     // anl[11] = Walmart monthly ROI, anl[12] = Omni monthly ROI
     // anl[38] = Walmart Inv Cost, anl[39] = Omni Inv Cost
-    const g = (row, cols=[2,3,4,5]) => (row||[]).slice ? cols.map(i => parseFloat(row[i]) || 0) : [0,0,0,0];
+    const g = (row, cols=[2,3,4,5,6]) => (row||[]).slice ? cols.map(i => parseFloat(row[i]) || 0) : [0,0,0,0,0];
 
     const getROIRow = (targetLabel) => {
       // Search only within Table 2 (rows 10-14 in anl)
@@ -2662,7 +2663,7 @@ async function loadROIData() {
           return g(anl[i]);
         }
       }
-      return [0,0,0,0];
+      return [0,0,0,0,0];
     };
 
     const wmtInvRow  = anl[39]; // Walmart Inv Cost row (row 40 in sheet, 0-indexed = 39)
@@ -2676,7 +2677,7 @@ async function loadROIData() {
       }
       return -1;
     };
-    const roiVals = (rowIdx) => rowIdx>=0 ? [2,3,4,5].map(c => parseFloat(roi[rowIdx][c])||0) : [0,0,0,0];
+    const roiVals = (rowIdx) => rowIdx>=0 ? [2,3,4,5,6].map(c => parseFloat(roi[rowIdx][c])||0) : [0,0,0,0,0];
 
     // Walmart block then Omni block — each has its own "Average Inventory Cost" + "Contribution Profit"
     const wmtHdr  = findRoiRow('Walmart Omni Online');
@@ -2698,15 +2699,15 @@ async function loadROIData() {
           return g(anl[i]);
         }
       }
-      return [0,0,0,0];
+      return [0,0,0,0,0];
     };
 
     ROI_DATA = {
       months: MONTHS,
       channels: {
         'Walmart Omni Online': { pl: wmtPL,  roi: getROIRow('Walmart Omni Online') },
-        'TKM':                 { pl: tkmPL,  roi: [0,0,0,0] },
-        'TikTok & Flip':       { pl: ttPL,   roi: [0,0,0,0] },
+        'TKM':                 { pl: tkmPL,  roi: [0,0,0,0,0] },
+        'TikTok & Flip':       { pl: ttPL,   roi: [0,0,0,0,0] },
         'Other Omni Online':   { pl: othPL,  roi: [0,0,0,0] },
         'Omni Channel Total':  { pl: omniPL, roi: getROIRow('Omni Channel (Combined)') },
       },

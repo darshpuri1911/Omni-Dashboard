@@ -261,6 +261,12 @@ table.pnl-table tfoot td:first-child { text-align:left; }
     <button class="pnl-view-btn" data-view="tiktok" onclick="setPnlView('tiktok')">TikTok</button>
   </div>
   <div class="sep"></div>
+  <label>Year:</label>
+  <div id="pnl-year-toggle" style="display:inline-flex;gap:6px;margin-right:8px">
+    <button class="pnl-view-btn" data-year="2025" onclick="setPnlYear('2025')">2025</button>
+    <button class="pnl-view-btn active" data-year="2026" onclick="setPnlYear('2026')">2026</button>
+  </div>
+  <div class="sep"></div>
   <label>Filter:</label>
   <div class="ms-wrap" id="ms-pnl-month-wrap">
     <button class="ms-btn" onclick="toggleMS('ms-pnl-month')">All Months <span>▾</span></button>
@@ -604,6 +610,36 @@ table.pnl-table tfoot td:first-child { text-align:left; }
     </div>
   </div>
 
+  <!-- ── 2025 vs 2026 COMPARISON ── -->
+  <div class="card-title" style="font-size:14px;margin:18px 0 10px"><span class="icon">📅</span>2025 vs 2026 (same window)</div>
+  <div id="pnl-compare-note" style="font-size:11px;color:#6b7280;margin:-4px 0 10px"></div>
+  <div id="pnl-compare-wrap">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="card">
+        <div class="card-title"><span class="icon">💰</span>Net Revenue, COGS, Platform Costs, CP</div>
+        <div style="font-size:11px;color:#6b7280;margin:-4px 0 6px">Solid = 2026, faded = 2025, by month (same window).</div>
+        <div class="chart-wrap" style="height:280px"><canvas id="pnl-cmp-lines"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">📊</span>Contribution Margin % — 2025 vs 2026</div>
+        <div style="font-size:11px;color:#6b7280;margin:-4px 0 6px">Monthly contribution margin, both years.</div>
+        <div class="chart-wrap" style="height:280px"><canvas id="pnl-cmp-margin"></canvas></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card">
+        <div class="card-title"><span class="icon">🏆</span>Total CP &amp; Margin — Full-Year 2025 vs 2026 YTD</div>
+        <div style="font-size:11px;color:#6b7280;margin:-4px 0 6px">Full calendar-year 2025 against 2026 year-to-date (partial).</div>
+        <div class="chart-wrap" style="height:240px"><canvas id="pnl-cmp-fy"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">⚖️</span>Total CP &amp; Margin — Same Window (2025 vs 2026)</div>
+        <div style="font-size:11px;color:#6b7280;margin:-4px 0 6px">Apples-to-apples: only the months present in 2026.</div>
+        <div class="chart-wrap" style="height:240px"><canvas id="pnl-cmp-sw"></canvas></div>
+      </div>
+    </div>
+  </div>
+
 </div>
 </div><!-- /content-pnl -->
 
@@ -870,7 +906,7 @@ const EXCESS_APP_URL = 'https://script.google.com/macros/s/AKfycbx_EOgQOBMo5-nqa
 const AGE_APP_URL = 'https://script.google.com/macros/s/AKfycby-BxnWofO5Vp5zTBENcZaehw3gBWlPn66H-hk3F5unvjIJ0x9qhC-gcOWqDwNIfNOZeg/exec'; // Inventory Age
 const BUDGET_APP_URL = 'https://script.google.com/macros/s/AKfycbzprBv_d_QQTImRzb89N7PkuyoXmJb7sjNLeHomEmuPORK_DnxILgZUBue9YyErT7-f9A/exec'; // Omni Budget
 const TRACKER_APP_URL = 'https://script.google.com/macros/s/AKfycbzM5nBo5l9KBilN-SM_aVHbeRr2ZDYjym-wnqdnah6lpW_Z8tBoUVqHhQYGgQqfc5NO/exec'; // Weekly Pace Tracker
-const PNL_APP_URL = 'https://script.google.com/macros/s/AKfycby_w0Dgn2Lgk0-9VVmuAwsX07xSDeoiXNzW3mCgqvkYDU9DztDKbFK4EKJujfwKh_hGWg/exec'; // ← Profit & Loss feed (PnL_Feed.gs). Paste the /exec URL after deploying.
+const PNL_APP_URL = 'https://script.google.com/macros/s/AKfycbxa9m3NpKJs4asq1iE2FFaJzjahUP4tsDMGsXzkqBYicSLjMLBPFUYkPhDgxiC38OXHJw/exec'; // ← Profit & Loss feed (PnL_Feed.gs). Paste the /exec URL after deploying.
 
 // ═══════════════════════════════════════════════════════
 //  GLOBALS
@@ -3540,6 +3576,7 @@ let PNL_ROWS = [];
 let PNL_TOTALS = [];
 let PNL_ALL = [];
 let PNL_VIEW = 'omni';
+let PNL_YEAR = '2026';
 let PNL_LOADED = false;
 let PNL_CHARTS = {};
 const PNL_MN = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -3556,11 +3593,23 @@ function setPnlView(view){
   renderPnl();
 }
 
-// Rebuild PNL_ROWS/PNL_TOTALS for the active source
+function setPnlYear(year){
+  PNL_YEAR = year;
+  document.querySelectorAll('#pnl-year-toggle .pnl-view-btn').forEach(b=>b.classList.toggle('active', b.dataset.year===year));
+  applyPnlView();
+  renderPnl();
+}
+
+// Rows for the active source, restricted to the active year
 function applyPnlView(){
-  PNL_ROWS   = PNL_ALL.filter(r => r.source===PNL_VIEW && !r.isTotal);
-  PNL_TOTALS = PNL_ALL.filter(r => r.source===PNL_VIEW && r.isTotal);
+  PNL_ROWS   = PNL_ALL.filter(r => r.source===PNL_VIEW && !r.isTotal && String(r.year)===PNL_YEAR);
+  PNL_TOTALS = PNL_ALL.filter(r => r.source===PNL_VIEW && r.isTotal && String(r.year)===PNL_YEAR);
   buildPnlFilters();
+}
+
+// Whether the active source has any 2025 data (for Walmart handling)
+function pnlHasYear(year){
+  return PNL_ALL.some(r => r.source===PNL_VIEW && !r.isTotal && String(r.year)===String(year));
 }
 
 async function loadPnlData(){
@@ -3647,11 +3696,19 @@ function pnlPeriodText(rows){
   const yr=ps[0].split('-')[0];
   const mi=ps.map(p=>+p.split('-')[1]).sort((a,b)=>a-b);
   const contiguous=mi.every((v,i)=>i===0||v===mi[i-1]+1);
-  const txt=(contiguous&&mi.length>1)?(PNL_MN[mi[0]]+'\u2013'+PNL_MN[mi[mi.length-1]]):mi.map(m=>PNL_MN[m]).join(', ');
+  const txt=(contiguous&&mi.length>1)?(PNL_MN[mi[0]]+'–'+PNL_MN[mi[mi.length-1]]):mi.map(m=>PNL_MN[m]).join(', ');
   return txt+' '+yr;
 }
 
 function renderPnl(){
+  // Walmart has no 2025 data — show a clean message instead of empty charts.
+  const noData = !PNL_ROWS.length;
+  if(noData && PNL_YEAR==='2025'){
+    pnlMsg('No 2025 data available for '+viewLabel()+'. Switch the year to 2026, or pick another view.');
+    clearPnlCharts();
+    renderPnlCompare(); // will also show the no-2025 note in the compare row
+    return;
+  }
   const mktRows=pnlFiltered();
   if(!mktRows.length){ pnlMsg('No data for the selected filters.'); return; }
   const totals=pnlTotalsRows();
@@ -3661,6 +3718,13 @@ function renderPnl(){
   renderPnlMktChart(mktRows);
   renderPnlTable(mktRows, totals);
   renderPnlBuckets(totals.rows);
+  renderPnlCompare();
+}
+
+function viewLabel(){ return PNL_VIEW==='omni'?'Omni':PNL_VIEW==='walmart'?'Walmart':'TikTok'; }
+
+function clearPnlCharts(){
+  ['pnl-ch-month','pnl-ch-mkt','pnl-ch-g2n','pnl-ch-sell','pnl-ch-fulfill','pnl-ch-adv'].forEach(destroyChart);
 }
 
 function renderPnlKpis(rows, ptxt, fromTotal){
@@ -3682,7 +3746,7 @@ function renderPnlKpis(rows, ptxt, fromTotal){
     const row=document.getElementById('pnl-kpi-row'); row.parentNode.insertBefore(n, row.nextSibling); }
   n.innerHTML = fromTotal
     ? 'Totals use the consolidated P&amp;L, which includes an estimated Warehousing, Labor &amp; Freight accrual for months not yet invoiced (so Contribution Profit is not overstated).'
-    : 'Totals reflect the selected marketplaces\u2019 own actuals. Note: Warehousing, Labor &amp; Freight may be un-invoiced ($0) for recent months, which can overstate Contribution Profit.';
+    : 'Totals reflect the selected marketplaces’ own actuals. Note: Warehousing, Labor &amp; Freight may be un-invoiced ($0) for recent months, which can overstate Contribution Profit.';
 }
 
 function pnlMonths(rows){ return [...new Set(rows.map(r=>r.period))].sort(); }
@@ -3760,7 +3824,7 @@ function renderPnlTable(rows, totals){
     document.querySelector('#pnl-mkt-table').parentElement.appendChild(note); }
   note.innerHTML = (PNL_VIEW==='omni')
     ? ((anyMissing?'<span style="color:#f59e0b">*</span> Per-marketplace Contribution Profit is <b>overstated</b> for months where Warehousing, Labor &amp; Freight (WLF) invoices have not yet been received (shown as $0 in the marketplace tabs). ':'')+
-       'The <b>Total</b> row uses the consolidated P&amp;L, which includes an <b>estimated WLF accrual</b> for un-invoiced months so the company-level margin is not inflated. Per-marketplace rows use each marketplace\u2019s own actuals.')
+       'The <b>Total</b> row uses the consolidated P&amp;L, which includes an <b>estimated WLF accrual</b> for un-invoiced months so the company-level margin is not inflated. Per-marketplace rows use each marketplace’s own actuals.')
     : ('Figures are from the '+(PNL_VIEW==='walmart'?'Walmart':'TikTok')+' P&amp;L.'+
        (anyMissing?' <span style="color:#f59e0b">*</span> Warehousing, Labor &amp; Freight may not yet be invoiced ($0) for recent months, which can overstate Contribution Profit.':''));
 }
@@ -3771,22 +3835,37 @@ function makeStackedChart(canvasId, rows, components){
   const months=pnlMonths(rows);
   destroyChart(canvasId);
   const datasets=components.map(c=>({
+    type:'bar',
     label:c.label,
     data:months.map(p=>pSum(rows.filter(r=>r.period===p), c.key)),
-    backgroundColor:c.color, borderRadius:3, maxBarThickness:48, stack:'s'
+    backgroundColor:c.color, borderRadius:3, maxBarThickness:48, stack:'s', order:2, yAxisID:'y'
   }));
+  // % of Net Revenue line: sum of the components' $ that month ÷ net revenue that month
+  const pctData=months.map(p=>{
+    const rs=rows.filter(r=>r.period===p);
+    const nr=pSum(rs,'netRevenue');
+    const cost=components.reduce((s,c)=>s+pSum(rs,c.key),0);
+    return nr>0 ? cost/nr*100 : null;
+  });
+  datasets.push({
+    type:'line', label:'% of Net Revenue', data:pctData,
+    borderColor:'#ef4444', backgroundColor:'transparent', borderWidth:2,
+    tension:.35, pointRadius:2, pointBackgroundColor:'#ef4444', yAxisID:'yPct', order:1
+  });
   PNL_CHARTS[canvasId]=new Chart(document.getElementById(canvasId).getContext('2d'),{
-    type:'bar',
     data:{ labels:months.map(periodLabel), datasets:datasets },
     options:{ responsive:true, maintainAspectRatio:false,
       interaction:{mode:'index',intersect:false},
-      plugins:{ legend:{display:components.length>1, labels:{font:{size:9}, usePointStyle:true, boxWidth:8}},
+      plugins:{ legend:{display:true, labels:{font:{size:9}, usePointStyle:true, boxWidth:8}},
         tooltip:{callbacks:{
-          label:c=>c.dataset.label+': '+fmt$(c.raw),
-          footer:items=>'Total: '+fmt$(items.reduce((s,i)=>s+i.raw,0))
+          label:c=> c.dataset.yAxisID==='yPct'
+            ? '% of Net Revenue: '+(c.raw==null?'—':c.raw.toFixed(1)+'%')
+            : c.dataset.label+': '+fmt$(c.raw),
+          footer:items=>{ const bars=items.filter(i=>i.dataset.yAxisID==='y'); return bars.length?'Total: '+fmt$(bars.reduce((s,i)=>s+i.raw,0)):''; }
         }} },
       scales:{ x:{stacked:true, ticks:{font:{size:10}}},
-               y:{stacked:true, ticks:{callback:v=>fmtK(v),font:{size:10}}, grid:{color:'#f0f4f8'}} }}
+               y:{stacked:true, position:'left', ticks:{callback:v=>fmtK(v),font:{size:10}}, grid:{color:'#f0f4f8'}},
+               yPct:{position:'right', ticks:{callback:v=>v.toFixed(0)+'%',font:{size:10}}, grid:{drawOnChartArea:false}} }}
   });
 }
 
@@ -3796,22 +3875,26 @@ function makeSellingFeeChart(canvasId, rows){
   const gross=months.map(p=>pSum(rows.filter(r=>r.period===p),'sellingFeesGross'));
   const refund=months.map(p=>pSum(rows.filter(r=>r.period===p),'sellingFeesRefunds'));
   const net=gross.map((g,i)=>g-refund[i]);
+  const pctData=months.map((p,i)=>{ const nr=pSum(rows.filter(r=>r.period===p),'netRevenue'); return nr>0?net[i]/nr*100:null; });
   destroyChart(canvasId);
   PNL_CHARTS[canvasId]=new Chart(document.getElementById(canvasId).getContext('2d'),{
-    type:'bar',
     data:{ labels:months.map(periodLabel), datasets:[
-      {label:'Selling Fees', data:gross, backgroundColor:'#6366f1', borderRadius:3, maxBarThickness:48, stack:'s'},
-      {label:'Fee Refunds (credit)', data:refund.map(v=>-v), backgroundColor:'#a5b4fc', borderRadius:3, maxBarThickness:48, stack:'s'}
+      {type:'bar', label:'Selling Fees', data:gross, backgroundColor:'#6366f1', borderRadius:3, maxBarThickness:48, stack:'s', order:2, yAxisID:'y'},
+      {type:'bar', label:'Fee Refunds (credit)', data:refund.map(v=>-v), backgroundColor:'#a5b4fc', borderRadius:3, maxBarThickness:48, stack:'s', order:2, yAxisID:'y'},
+      {type:'line', label:'% of Net Revenue (net)', data:pctData, borderColor:'#ef4444', backgroundColor:'transparent', borderWidth:2, tension:.35, pointRadius:2, pointBackgroundColor:'#ef4444', yAxisID:'yPct', order:1}
     ]},
     options:{ responsive:true, maintainAspectRatio:false,
       interaction:{mode:'index',intersect:false},
       plugins:{ legend:{display:true, labels:{font:{size:9}, usePointStyle:true, boxWidth:8}},
         tooltip:{callbacks:{
-          label:c=>c.dataset.label+': '+fmt$(Math.abs(c.raw)),
+          label:c=> c.dataset.yAxisID==='yPct'
+            ? '% of Net Revenue: '+(c.raw==null?'—':c.raw.toFixed(1)+'%')
+            : c.dataset.label+': '+fmt$(Math.abs(c.raw)),
           footer:items=>{ const i=items[0].dataIndex; return 'Net Selling Fees: '+fmt$(net[i]); }
         }} },
       scales:{ x:{stacked:true, ticks:{font:{size:10}}},
-               y:{stacked:true, ticks:{callback:v=>fmtK(v),font:{size:10}}, grid:{color:'#f0f4f8'}} }}
+               y:{stacked:true, position:'left', ticks:{callback:v=>fmtK(v),font:{size:10}}, grid:{color:'#f0f4f8'}},
+               yPct:{position:'right', ticks:{callback:v=>v.toFixed(0)+'%',font:{size:10}}, grid:{drawOnChartArea:false}} }}
   });
 }
 
@@ -3831,6 +3914,121 @@ function renderPnlBuckets(rows){
   makeStackedChart('pnl-ch-adv', rows, [
     {label:'Advertising Fees', key:'advertisingFees', color:'#ec4899'}
   ]);
+}
+
+
+// ── 2025 vs 2026 COMPARISON ──
+// Respects active view (source) + marketplace filter. Same-window aligns by month.
+function pnlCompareRows(year){
+  // marketplace filter (Omni only); mirror pnlFiltered's marketplace logic
+  const mkts=getChecked('ms-pnl-mkt');
+  return PNL_ALL.filter(r=>{
+    if(r.source!==PNL_VIEW || r.isTotal) return false;
+    if(String(r.year)!==String(year)) return false;
+    if(PNL_VIEW==='omni' && mkts!=='all' && !mkts.includes(r.marketplace)) return false;
+    return true;
+  });
+}
+// Totals rows (Total-Actuals for Omni-all, else marketplace rows) for a given year
+function pnlCompareTotals(year){
+  const mkts=getChecked('ms-pnl-mkt');
+  const useTotalTab = (PNL_VIEW==='omni' && mkts==='all');
+  if(useTotalTab){
+    const t=PNL_ALL.filter(r=>r.source==='omni' && r.isTotal && String(r.year)===String(year));
+    if(t.length) return t;
+  }
+  return pnlCompareRows(year);
+}
+
+function renderPnlCompare(){
+  const note=document.getElementById('pnl-compare-note');
+  const wrap=document.getElementById('pnl-compare-wrap');
+  const has2025 = PNL_ALL.some(r=>r.source===PNL_VIEW && !r.isTotal && String(r.year)==='2025');
+  if(!has2025){
+    if(note) note.innerHTML='<span style="color:#f59e0b">No 2025 data available for '+viewLabel()+'</span> — year-over-year comparison isn’t available for this view.';
+    if(wrap) wrap.style.display='none';
+    return;
+  }
+  if(note) note.innerHTML='Scope follows the current view'+(PNL_VIEW==='omni'?' and marketplace filter':'')+'. “Same window” compares only the months present in 2026.';
+  if(wrap) wrap.style.display='';
+
+  const r25=pnlCompareTotals('2025'), r26=pnlCompareTotals('2026');
+  const mk25=pnlCompareRows('2025'), mk26=pnlCompareRows('2026');
+
+  // Months present in 2026 (same-window basis)
+  const m26=[...new Set(r26.map(r=>r.month))].sort((a,b)=>a-b);
+
+  // 1) Lines: NetRev/COGS/Platform/CP by month, 2025 vs 2026 (over months present in either, but align on 1..12)
+  const allMonths=[...new Set([...r25.map(r=>r.month),...r26.map(r=>r.month)])].sort((a,b)=>a-b);
+  const sumByMonth=(rows,mon,key)=>pSum(rows.filter(r=>r.month===mon),key);
+  const line=(rows,key)=>allMonths.map(mo=>sumByMonth(rows,mo,key));
+  destroyChart('pnl-cmp-lines');
+  const mkLine=(lab,data,color,dash)=>({label:lab,data,borderColor:color,backgroundColor:'transparent',borderWidth:2,borderDash:dash||[],tension:.35,pointRadius:2});
+  PNL_CHARTS['pnl-cmp-lines']=new Chart(document.getElementById('pnl-cmp-lines').getContext('2d'),{
+    type:'line',
+    data:{ labels:allMonths.map(m=>PNL_MN[m]), datasets:[
+      mkLine('Net Rev 2026',line(r26,'netRevenue'),'#4f46e5'),
+      mkLine('Net Rev 2025',line(r25,'netRevenue'),'#4f46e5',[4,3]),
+      mkLine('CP 2026',line(r26,'cp'),'#10b981'),
+      mkLine('CP 2025',line(r25,'cp'),'#10b981',[4,3]),
+      mkLine('COGS 2026',line(r26,'cogs'),'#f59e0b'),
+      mkLine('COGS 2025',line(r25,'cogs'),'#f59e0b',[4,3]),
+      mkLine('Platform 2026',line(r26,'platformCosts'),'#06b6d4'),
+      mkLine('Platform 2025',line(r25,'platformCosts'),'#06b6d4',[4,3]),
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:true,labels:{font:{size:8},usePointStyle:true,boxWidth:7}},
+        tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt$(c.raw)}}},
+      scales:{y:{ticks:{callback:v=>fmtK(v),font:{size:10}},grid:{color:'#f0f4f8'}},x:{ticks:{font:{size:10}}}}}
+  });
+
+  // 2) Contribution margin % by month, both years
+  const marg=(rows)=>allMonths.map(mo=>{const nr=sumByMonth(rows,mo,'netRevenue');return nr>0?sumByMonth(rows,mo,'cp')/nr*100:null;});
+  destroyChart('pnl-cmp-margin');
+  PNL_CHARTS['pnl-cmp-margin']=new Chart(document.getElementById('pnl-cmp-margin').getContext('2d'),{
+    type:'line',
+    data:{labels:allMonths.map(m=>PNL_MN[m]),datasets:[
+      {label:'Margin % 2026',data:marg(r26),borderColor:'#10b981',backgroundColor:'transparent',borderWidth:2,tension:.35,pointRadius:3},
+      {label:'Margin % 2025',data:marg(r25),borderColor:'#10b981',backgroundColor:'transparent',borderWidth:2,borderDash:[4,3],tension:.35,pointRadius:3}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:true,labels:{font:{size:9},usePointStyle:true,boxWidth:8}},
+        tooltip:{callbacks:{label:c=>c.dataset.label+': '+(c.raw==null?'—':c.raw.toFixed(1)+'%')}}},
+      scales:{y:{ticks:{callback:v=>v.toFixed(0)+'%',font:{size:10}},grid:{color:'#f0f4f8'}},x:{ticks:{font:{size:10}}}}}
+  });
+
+  // 3) Full-year 2025 vs 2026 YTD — total CP $ (bars) + margin % (labels)
+  const totCP=(rows)=>pSum(rows,'cp'), totNR=(rows)=>pSum(rows,'netRevenue');
+  const fyCP=[totCP(r25), totCP(r26)], fyNR=[totNR(r25), totNR(r26)];
+  const fyMarg=fyCP.map((c,i)=>fyNR[i]>0?c/fyNR[i]*100:0);
+  makeCompareBar('pnl-cmp-fy', ['2025 (full year)','2026 (YTD)'], fyCP, fyMarg);
+
+  // 4) Same window: 2025 restricted to months present in 2026
+  const r25sw=r25.filter(r=>m26.includes(r.month));
+  const swCP=[totCP(r25sw), totCP(r26)], swNR=[totNR(r25sw), totNR(r26)];
+  const swMarg=swCP.map((c,i)=>swNR[i]>0?c/swNR[i]*100:0);
+  const swLabel=m26.length?(PNL_MN[m26[0]]+'–'+PNL_MN[m26[m26.length-1]]):'same window';
+  makeCompareBar('pnl-cmp-sw', ['2025 ('+swLabel+')','2026 ('+swLabel+')'], swCP, swMarg);
+}
+
+// Two-bar CP comparison with margin % printed above each bar
+function makeCompareBar(canvasId, labels, cpArr, margArr){
+  destroyChart(canvasId);
+  const labelPlugin={id:canvasId+'ml', afterDatasetsDraw(chart){
+    const ctx=chart.ctx, meta=chart.getDatasetMeta(0);
+    ctx.save(); ctx.font='700 12px sans-serif'; ctx.textAlign='center'; ctx.fillStyle='#10b981';
+    meta.data.forEach((bar,i)=>{ ctx.fillText(margArr[i].toFixed(1)+'%', bar.x, bar.y-6); });
+    ctx.restore();
+  }};
+  PNL_CHARTS[canvasId]=new Chart(document.getElementById(canvasId).getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{label:'Contribution Profit',data:cpArr,
+      backgroundColor:['#a5b4fc','#4f46e5'],borderRadius:5,maxBarThickness:80}]},
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:22}},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:c=>'CP: '+fmt$(c.raw)+' ('+margArr[c.dataIndex].toFixed(1)+'% margin)'}}},
+      scales:{y:{ticks:{callback:v=>fmtK(v),font:{size:10}},grid:{color:'#f0f4f8'}},x:{ticks:{font:{size:11}}}}}
+  });
 }
 
 </script>

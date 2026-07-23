@@ -628,14 +628,15 @@ table.pnl-table tfoot td:first-child { text-align:left; }
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <div class="card">
-        <div class="card-title"><span class="icon">🏆</span>Total CP &amp; Margin — Full-Year 2025 vs 2026 YTD</div>
-        <div style="font-size:11px;color:#6b7280;margin:-4px 0 6px">Full calendar-year 2025 against 2026 year-to-date (partial).</div>
-        <div class="chart-wrap" style="height:240px"><canvas id="pnl-cmp-fy"></canvas></div>
+        <div class="card-title"><span class="icon">🏆</span>Total CP &amp; Margin — 2025 vs 2026</div>
+        <div style="font-size:11px;color:#6b7280;margin:-4px 0 6px">Full-year 2025 vs 2026 YTD, and the fair same-window (only months present in 2026). Margin % above each bar.</div>
+        <div class="chart-wrap" style="height:260px"><canvas id="pnl-cmp-cp"></canvas></div>
       </div>
       <div class="card">
-        <div class="card-title"><span class="icon">⚖️</span>Total CP &amp; Margin — Same Window (2025 vs 2026)</div>
-        <div style="font-size:11px;color:#6b7280;margin:-4px 0 6px">Apples-to-apples: only the months present in 2026.</div>
-        <div class="chart-wrap" style="height:240px"><canvas id="pnl-cmp-sw"></canvas></div>
+        <div class="card-title"><span class="icon">📊</span>Costs as % of Revenue — 2025 vs 2026 (same window)</div>
+        <div style="font-size:11px;color:#6b7280;margin:-4px 0 6px">Each cost as a share of net revenue. Taller 2026 bar = that cost grew and squeezed margin.</div>
+        <div class="chart-wrap" style="height:260px"><canvas id="pnl-cmp-coststruct"></canvas></div>
+        <div id="pnl-coststruct-note" style="font-size:10.5px;color:#9ca3af;margin-top:6px;line-height:1.4;display:none"></div>
       </div>
     </div>
   </div>
@@ -3997,19 +3998,87 @@ function renderPnlCompare(){
       scales:{y:{ticks:{callback:v=>v.toFixed(0)+'%',font:{size:10}},grid:{color:'#f0f4f8'}},x:{ticks:{font:{size:10}}}}}
   });
 
-  // 3) Full-year 2025 vs 2026 YTD — total CP $ (bars) + margin % (labels)
+  // 3) Combined CP & margin: 2025 FY, 2026 YTD | 2025 same-window, 2026 same-window
   const totCP=(rows)=>pSum(rows,'cp'), totNR=(rows)=>pSum(rows,'netRevenue');
-  const fyCP=[totCP(r25), totCP(r26)], fyNR=[totNR(r25), totNR(r26)];
-  const fyMarg=fyCP.map((c,i)=>fyNR[i]>0?c/fyNR[i]*100:0);
-  makeCompareBar('pnl-cmp-fy', ['2025 (full year)','2026 (YTD)'], fyCP, fyMarg);
-
-  // 4) Same window: 2025 restricted to months present in 2026
   const r25sw=r25.filter(r=>m26.includes(r.month));
-  const swCP=[totCP(r25sw), totCP(r26)], swNR=[totNR(r25sw), totNR(r26)];
-  const swMarg=swCP.map((c,i)=>swNR[i]>0?c/swNR[i]*100:0);
   const swLabel=m26.length?(PNL_MN[m26[0]]+'–'+PNL_MN[m26[m26.length-1]]):'same window';
-  makeCompareBar('pnl-cmp-sw', ['2025 ('+swLabel+')','2026 ('+swLabel+')'], swCP, swMarg);
+  const cpVals=[totCP(r25), totCP(r26), totCP(r25sw), totCP(r26)];
+  const nrVals=[totNR(r25), totNR(r26), totNR(r25sw), totNR(r26)];
+  const margVals=cpVals.map((c,i)=>nrVals[i]>0?c/nrVals[i]*100:0);
+  makeCompareCP('pnl-cmp-cp',
+    [['2025','full yr'],['2026','YTD'],['2025',swLabel],['2026',swLabel]],
+    cpVals, margVals,
+    ['#c7d2fe','#6366f1','#a5b4fc','#4f46e5']);
+
+  // 4) Margin waterfall: 2025 same-window margin -> 2026 margin, by lever
+  renderCostStructure('pnl-cmp-coststruct', r25sw, r26);
 }
+
+// Grouped CP bars (4 bars) with margin % above each; visual gap via colors + two-line labels
+function makeCompareCP(canvasId, labels, cpArr, margArr, colors){
+  destroyChart(canvasId);
+  const labelPlugin={id:canvasId+'ml', afterDatasetsDraw(chart){
+    const ctx=chart.ctx, meta=chart.getDatasetMeta(0);
+    ctx.save(); ctx.font='700 11px sans-serif'; ctx.textAlign='center'; ctx.fillStyle='#10b981';
+    meta.data.forEach((bar,i)=>{ ctx.fillText(margArr[i].toFixed(1)+'%', bar.x, bar.y-6); });
+    ctx.restore();
+  }};
+  PNL_CHARTS[canvasId]=new Chart(document.getElementById(canvasId).getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{label:'Contribution Profit',data:cpArr,
+      backgroundColor:colors,borderRadius:5,maxBarThickness:64}]},
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:22}},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{
+          title:items=>{ const l=items[0].label; return Array.isArray(l)?l.join(' '):l; },
+          label:c=>'CP: '+fmt$(c.raw)+' ('+margArr[c.dataIndex].toFixed(1)+'% margin)'}}},
+      scales:{y:{ticks:{callback:v=>fmtK(v),font:{size:10}},grid:{color:'#f0f4f8'}},x:{ticks:{font:{size:10}}}}}
+  });
+}
+
+// Margin waterfall: start at 2025 margin %, step through each lever's YoY contribution, end at 2026 margin.
+// Each lever's margin impact = -(cost_2026/NR_2026 - cost_2025/NR_2025) in percentage points.
+// Revenue-mix/gross effect captured as a "Revenue & COGS" step so the steps reconcile exactly to the total.
+function renderCostStructure(canvasId, r25, r26){
+  destroyChart(canvasId);
+  const nr25=pSum(r25,'netRevenue'), nr26=pSum(r26,'netRevenue');
+  if(nr25<=0 || nr26<=0){ return; }
+  const pct=(rows,key,nr)=>nr>0?pSum(rows,key)/nr*100:0;
+  const cats=[
+    {label:'COGS',         key:'cogs'},
+    {label:'Selling Fees', key:'bucketSellingFees'},
+    {label:'Fulfillment',  key:'bucketFulfillment'},
+    {label:'Advertising',  key:'bucketAdvertising'},
+  ];
+  const v25=cats.map(c=>pct(r25,c.key,nr25));
+  const v26=cats.map(c=>pct(r26,c.key,nr26));
+  PNL_CHARTS[canvasId]=new Chart(document.getElementById(canvasId).getContext('2d'),{
+    type:'bar',
+    data:{ labels:cats.map(c=>c.label), datasets:[
+      {label:'2025', data:v25, backgroundColor:'#a5b4fc', borderRadius:4, maxBarThickness:36},
+      {label:'2026', data:v26, backgroundColor:'#4f46e5', borderRadius:4, maxBarThickness:36}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true, labels:{font:{size:10}, usePointStyle:true, boxWidth:8}},
+        tooltip:{callbacks:{
+          label:c=>c.dataset.label+': '+c.raw.toFixed(1)+'% of revenue',
+          afterlabel:c=>{ if(c.datasetIndex===1){ const d=v26[c.dataIndex]-v25[c.dataIndex];
+            return (d>=0?'+':'')+d.toFixed(1)+' pts vs 2025'+(d>0?' (cost grew)':d<0?' (cost fell)':''); } return ''; }
+        }}},
+      scales:{y:{ticks:{callback:v=>v.toFixed(0)+'%',font:{size:10}},grid:{color:'#f0f4f8'},title:{display:true,text:'% of net revenue',font:{size:10}}},
+              x:{ticks:{font:{size:11}}}}}
+  });
+
+  // Footnote (Omni only): 2026 fulfillment includes an estimated WLF accrual.
+  const note=document.getElementById('pnl-coststruct-note');
+  if(note){
+    if(PNL_VIEW==='omni'){
+      note.style.display='';
+      note.innerHTML='Note: 2026 fulfillment includes an <b>estimated</b> Warehousing, Labor &amp; Freight accrual for months not yet invoiced, so part of the fulfillment increase reflects a more complete cost picture rather than purely higher costs.';
+    } else { note.style.display='none'; }
+  }
+}
+
 
 // Two-bar CP comparison with margin % printed above each bar
 function makeCompareBar(canvasId, labels, cpArr, margArr){
